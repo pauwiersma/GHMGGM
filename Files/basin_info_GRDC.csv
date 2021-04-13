@@ -1,0 +1,32 @@
+Basin name,Center lon.,Center lat.,Glaciation degree (%),GRDC station no.,GRDC station name,Obs. start,Obs. End
+Alsek,-137,60,19.76,4102050,Near Yakutat,2000,2012
+Amazon,-64,-6,0.03,3629001,Obidos - Linigrafo,2000,2007
+Clutha,169,-45,0.31,5868050,Clyde,2000,2008
+Columbia,-116,46,0.28,4215210,International Boundary (Canada),2000,2012
+Copper,-143,61,20.01,4102710,"Million Dollar Bridge Near Cordova, Ak.",2003,2011
+Danube,18,46,0.05,6742201,Bazias,2000,2007
+Dramselv,9,61,0.19,6731310,Dovikfoss,2000,2012
+Fraser,-122,52,1.04,4207900,Hope,2000,2012
+Gloma,11,61,0.63,6731403,Solbergfoss,2000,2012
+Irrawaddy,96,23,0.02,2260400,Katha,2000,2009
+Joekulsa,-16,65,15.03,6401702,Grimsstadir,2000,2012
+Kalixaelven,22,67,0.22,6233850,Raektfors,2000,2012
+Kuskokwim,-156,61,0.87,4102100,"Crooked Creek, Alas.",2000,2012
+Lule,18,67,0.98,6233750,"Bodens Krv (+ Vattenverk, Trangfors)",2002,2011
+Mackenzie,-120,61,0.09,4208025,Arctic Red River,2000,2012
+Nass,-129,56,6.3,4206100,Above Shumal Creek,2000,2012
+Negro,-68,-39,0.05,3275990,Primera Angostura,2000,2012
+Nelson,-101,51,0.03,4213711,Long Spruce Generating Station,2000,2012
+Ob,75,55,0.03,2912600,Salekhard,2000,2009
+Oelfusa,-21,64,12.04,6401090,Selfoss,2000,2012
+Rhine,7,49,0.15,6935051,"Basel, Rheinhalle",2000,2012
+Rhone,5,45,0.93,-,Beaucaire/Tarrascon,2000,2012
+Santa_Cruz,-73,-50,9.89,3276800,Charles Fuhr,2000,2012
+Skagit,-121,49,2,4145080,"Near Mount Vernon, Wa",2000,2012
+Skeena,-127,55,1.73,4206250,Usk,2000,2012
+Stikine,-131,57,6.78,4204900,Near Wrangell,2000,2012
+Susitna,-149,62,8.7,4102820,"Gold Creek, Ak",2000,2012
+Taku,-132,58,0.41,4202601,Near Juneau,2000,2012
+Thjorsa,-19,64,16.63,6401120,Krokur,2000,2012
+Yukon,-144,65,1.15,4103200,"Pilot Station, Ak",2000,2012
+,,,,,,,
