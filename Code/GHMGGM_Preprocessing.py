@@ -213,8 +213,8 @@ def load_hybas(Basins_,B_):
     
     main_bas   = hybas_full['MAIN_BAS'][hybas_full.geometry.contains(
         gp.points_from_xy([Basins_[B_]['center_lon']],[Basins_[B_]['center_lat']])[0])].values[0]
-    hybas      = hybas_full[hybas_full['MAIN_BAS']==main_bas]
-    return hybas
+    return hybas_full[hybas_full['MAIN_BAS']==main_bas]
+
 
 #%% Find/Load glacier sinks (most downstream point to include all glacier runoff)
 t = time.time()
@@ -488,7 +488,7 @@ if PLOT_BASIN:
         #     plt.show()
         
         #save as vectorplot 
-        if SAVE_FIG == True:
+        if SAVE_FIG:
             save_at = join(run_dir,r'Code\Figures\Basin_maps\subbasins',B+'_map.svg')
             plt.savefig(save_at,format = 'svg',bbox_inches='tight')
             plt.show()
@@ -497,9 +497,41 @@ if FIND_GRDC_STATIONS:
     print ('Exit to find GRDC stations')
     sys.exit()
 
+#%% Rasterize function using geocube
+def rasterize(vector,var_key,merge_algorithm='replace'):
+    vector['bool'] = 1
+    llc_lon,llc_lat,urc_lon,urc_lat = [
+        Basins[B][i] for i in ['llc_lon','llc_lat','urc_lon','urc_lat']]
+    lon360 = 360 * (llc_lon<0)
+    latflip = 1-2*(llc_lat<0)
+    vector.geometry = vector.geometry.affine_transform([1,0,0,latflip,lon360,0])
+    res = 0.0833333
+    
+    #rasterio.enums.MergeAlg algorithms, default is replace
+    if merge_algorithm == 'add':
+        MERGE_ALG=MergeAlg.add
+    elif merge_algorithm =='replace':
+        MERGE_ALG=MergeAlg.replace
+    geo_grid=make_geocube(vector_data=vector,
+                           measurements = [var_key],
+                          resolution = (res,res),
+                          geom = json.dumps(mapping(box(llc_lon+lon360,
+                                                        llc_lat*latflip,
+                                                        urc_lon+lon360,
+                                                        urc_lat*latflip))),
+        rasterize_function=partial(rasterize_image,merge_alg = MERGE_ALG),
+        fill = 0)
+    geo_grid['x'] = geo_grid['x']-lon360
+    geo_grid['y'] = geo_grid['y']*latflip
+    geo_grid= geo_grid.rename({'y':'lat','x':'lon'})
+    geo_grid = geo_grid.where(~xr.ufuncs.isnan(geo_grid),0,drop=False)
+    return geo_grid
+
+
 #%% Creat isglac and isout maps
 #Isglac is a raster with a value of 1 for all glaciated pixels within the basin
 #Isout is a raster with a value of 1 for all glaciated pixels that lie for >50% outside the basin boundary
+
 if FIND_ISOUT_ISGLAC:
     for B in basin_names:
         bbox = (Basins[B]['llc_lon'],Basins[B]['llc_lat'],
@@ -552,31 +584,10 @@ if FIND_ISOUT_ISGLAC:
         
         
         #Rasterize isglac & isout
-        def rasterize_glacout(vector,var_key):
-            vector['bool'] = 1
-            llc_lon,llc_lat,urc_lon,urc_lat = [
-                Basins[B][i] for i in ['llc_lon','llc_lat','urc_lon','urc_lat']]
-            lon360 = 360 * (llc_lon<0)
-            latflip = 1-2*(llc_lat<0)
-            # lon360 = 0
-            # latflip=1
-            vector.geometry = vector.geometry.affine_transform([1,0,0,latflip,lon360,0])
-            res = 0.0833333
-            geo_grid=make_geocube(vector_data=vector,
-                                   measurements = [var_key],
-                                  resolution = (res,res),
-                                  geom = json.dumps(mapping(box(llc_lon+lon360,
-                                                                llc_lat*latflip,
-                                                                urc_lon+lon360,
-                                                                urc_lat*latflip))))
-            geo_grid['x'] = geo_grid['x']-lon360
-            geo_grid['y'] = geo_grid['y']*latflip
-            geo_grid= geo_grid.rename({'y':'lat','x':'lon'})
-            geo_grid = geo_grid.where(~xr.ufuncs.isnan(geo_grid),0,drop=False)
-            return geo_grid
-        isglac = rasterize_glacout(isglac_vec,'glac_frac').glac_frac
-        isout  = rasterize_glacout(isout_vec,'bool').bool
-        isbasin=rasterize_glacout(isbasin_vec,'bool').bool
+
+        isglac = rasterize(isglac_vec,'glac_frac').glac_frac
+        isout  = rasterize(isout_vec,'bool').bool
+        isbasin=rasterize(isbasin_vec,'bool').bool
         
         Basins[B]['isglac'] = isglac
         Basins[B]['isout']  = isout
@@ -649,34 +660,43 @@ for B in basin_names:
 
 #%% Rasterize GloGEM from point data
 if FIND_QM:
-    def rasterize(month,Basins,B,res = GHM_RESOLUTION):
-        """ This function converts the monthly runoff data per individual glacier into 
-        monthly runoff grid data with Geocube 
-        """
-        gdf        = gp.GeoDataFrame({'geometry':Basins[B]['GG_points'],
-                'R':Basins[B]['Q_volume'][month.strftime('%Y-%m')].values[0]})
-        #Perform rasterize in positive coordinates and then flip back
-        lon360   = 360 *(Basins[B]['llc_lon']<0)
-        latflip   = 1-2* (Basins[B]['llc_lat']<0)
-        gdf.geometry = gdf.geometry.affine_transform([1,0,0,latflip,lon360,0])    
-        geo_grid    = make_geocube(vector_data = gdf,
-                measurements = ['R'],
-                resolution = (res,res),
-                geom = json.dumps(mapping(box(Basins[B]['llc_lon']+lon360,
-                                              Basins[B]['llc_lat']*latflip,
-                                              Basins[B]['urc_lon']+lon360,
-                                              Basins[B]['urc_lat']*latflip))),
-                rasterize_function=partial(rasterize_image,merge_alg = MergeAlg.add),
-                fill = 0)
-        geo_grid['x'] = geo_grid['x']-lon360
-        geo_grid['y'] = geo_grid['y']*latflip
-        return geo_grid
+    # def rasterize(month,Basins,B,res = GHM_RESOLUTION):
+    #     """ This function converts the monthly runoff data per individual glacier into 
+    #     monthly runoff grid data with Geocube 
+    #     """
+    #     gdf        = gp.GeoDataFrame({'geometry':Basins[B]['GG_points'],
+    #             'R':Basins[B]['Q_volume'][month.strftime('%Y-%m')].values[0]})
+    #     #Perform rasterize in positive coordinates and then flip back
+    #     lon360   = 360 *(Basins[B]['llc_lon']<0)
+    #     latflip   = 1-2* (Basins[B]['llc_lat']<0)
+    #     gdf.geometry = gdf.geometry.affine_transform([1,0,0,latflip,lon360,0])    
+    #     geo_grid    = make_geocube(vector_data = gdf,
+    #             measurements = ['R'],
+    #             resolution = (res,res),
+    #             geom = json.dumps(mapping(box(Basins[B]['llc_lon']+lon360,
+    #                                           Basins[B]['llc_lat']*latflip,
+    #                                           Basins[B]['urc_lon']+lon360,
+    #                                           Basins[B]['urc_lat']*latflip))),
+    #             rasterize_function=partial(rasterize_image,merge_alg = MergeAlg.add),
+    #             fill = 0)
+    #     geo_grid['x'] = geo_grid['x']-lon360
+    #     geo_grid['y'] = geo_grid['y']*latflip
+    #     return geo_grid
     
     
+
     for B in basin_names:
         print ('Rasterize '+B)
-        Qlist       = [rasterize(m,Basins,B) for m in Basins[B]['Q_months']]
+        def find_gdf(month):
+            return gp.GeoDataFrame({'geometry':Basins[B]['GG_points'],
+                'R':Basins[B]['Q_volume'][month.strftime('%Y-%m')].values[0]})
+        Qlist       = [rasterize(find_gdf(m),'R','add') for m in Basins[B]['Q_months']]
+        # Qlist       = [rasterize(m,Basins,B) for m in Basins[B]['Q_months']]
+        
+        
         Qm          = xr.concat(Qlist,dim=pd.Index(Basins[B]['Q_months'],name='time'))
+        
+        
         
         #Mass conservation check
         pointsum  = Basins[B]['Q_volume'].sum().sum()
@@ -799,7 +819,7 @@ if SPILLING_PREVENTION:
                 lats = Qd.lat[i]
                 lons = Qd.lon[j]
                 b = Basins[B]['isout'].sel(lon=lons,lat =lats,method='nearest',tolerance=0.05)
-                success=False
+                SUCCESS=False
                 if b==1: #runoff falls outside basin
                     for ii in [-1,0,1]:
                         if (i+ii<-1)or(i+ii>=Qd.dims['lat']):
@@ -816,12 +836,12 @@ if SPILLING_PREVENTION:
                                 Qd.R.loc[:,latss,lonss]=Qd.R.loc[:,latss,lonss] +Qd.R.loc[:,lats,lons]
                                 R_out    =R_out+ Qd.R.loc[:,lats,lons].sum()
                                 Qd.R.loc[:,lats,lons]=0
-                                success=True
+                                SUCCESS=True
                                 break            
                             if ii==jj==1:
                                 spilled = spilled + Qd.R.loc[:,lats,lons].sum()
                                 print ('Runoff falls out of basin at',latss.data,lonss.data)
-                        if success:break
+                        if SUCCESS:break
         
         R_total = Qd.R.sum() 
         outfrac = R_out/R_total
