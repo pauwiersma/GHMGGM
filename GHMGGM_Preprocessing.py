@@ -1,42 +1,40 @@
 # -*- coding: utf-8 -*-
 #%% Packages
-import datetime as dt
-import glob
-import json
-import os
-import warnings
-from functools import partial
-from os.path import join
-
-import shutil
-import subprocess
-import sys
-import time
-
-import cartopy.crs as ccrs
-import cartopy.feature as cfeature
-import geopandas as gp
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 import pandas as pd
+# import scipy as sc
+import os 
+from os.path import join 
+# from mpl_toolkits.basemap import Basemap
+# import netCDF4 as nc4
+import glob
+# import descartes
+import geopandas as gp
+import datetime as dt
 import xarray as xr
 from geocube.api.core import make_geocube
-from geocube.rasterize import rasterize_image
+from geocube.rasterize import rasterize_points_griddata, rasterize_points_radial,rasterize_image
+import json
+from shapely.geometry import box,mapping
+from functools import partial
 from rasterio.enums import MergeAlg
-from shapely.geometry import box, mapping
-
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+import warnings
 warnings.filterwarnings('ignore')
-
-
+import time
+import subprocess
 from matplotlib.lines import Line2D
-
+import sys
+import shutil
 #%%
 """
 Created on Mon Jan 25 16:27:45 2021
 
 @author: Pau Wiersma
 
-Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
+Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling 
 (1/3): Preprocessing
 
 
@@ -44,7 +42,7 @@ Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
 This script:
     - helps to select GRDC stations and to create subbasins and clonemaps
             based on their location
-    - rasterizes and resamples GloGEM data
+    -  rasterizes and resamples GloGEM data
     - prevents their spilling into other basins
     - saves the result in a NetCDF file
 
@@ -67,10 +65,12 @@ To do:
 
 
 
+
+
 #%% Options and settings
 
 #Set running directory
-run_dir = r'D:\Documents\Master Vakken\Thesis\Code'
+run_dir = r'D:\Documents\Master Vakken\Thesis\Code' 
 os.chdir(run_dir)
 files               = join(run_dir,'Files')
 
@@ -84,7 +84,7 @@ GHM_resolution      = 0.0833333
 
 
 #Other inputs
-find_basins         =False #True=create basin shapefiles, false=load
+find_basins         =False #True=create, false=load
 find_sink           =False #True=find, false=load from basin_info.csv
 
 # If find_GRDCstations==True, then the subbasins will not be searched and the run will 
@@ -96,6 +96,7 @@ find_GRDCstations   =False
 OBS_minyear         =2000
 OBS_maxyear         =2012
 OBS_minlen          =5
+
 
 save_fig = False
 
@@ -131,7 +132,7 @@ Basin_names = ['RHONE','ALSEK']
 
 #%% Create dictionary for each basin in loop
 Basins={}
-for B in Basin_names:
+for B in Basin_names: 
     Basins[B]={}
     for k in basin_info.keys():
         Basins[B][k]=basin_info.loc[B,k]
@@ -139,7 +140,7 @@ for B in Basin_names:
 #%% Load paths, both for loading and for saving
 for B in Basin_names:
     
-    RGI_dir          = Basins[B]['RGI_dir']
+    RGI_dir          = basin_info.loc[B]['RGI_dir']
         
     p     ={'basin_shp'     :join(files,'basin_geojsons',B+'.geojson'),
             'subbasin_shp'  :join(files,'subbasin_geojsons',B+'.geojson'),
@@ -148,7 +149,7 @@ for B in Basin_names:
             'isbasin'       :join(files,'isbasin','isbasin_'+B+'.nc'),
             'clonemaps'     :join(files,'clones'),
             'globglacfrac'  :join(files,'globglacfrac','glob_glac_frac.shp'),
-            'glob_mask'     :join(files,'globglacfrac','global_masked_vectorgrid.shp'),
+            'glob_mask'     :join(files,'globglacfrac','global_masked_vectorgrid.shp'),            
             'Qcatch'        :join(files,'HH2018_validation',RGI_dir+'_'+GG_GCM+'_'+GG_rcp.upper()+'_Discharge_catchment.dat'),
             'Qm'            :join(files,'GG_rasterized_monthly',B+'_Qm_'+str(GG_fromyear)+'_'+str(GG_untilyear)+'.nc'),
             'Qd'            :join(files,'GG_resampled_daily',B+'_Qd_'+str(GG_fromyear)+'_'+str(GG_untilyear)+'.nc'),
@@ -168,14 +169,14 @@ for B in Basin_names:
     elif B =='INDUS':
         p['Tarbela']  = join(files,'Q_obs','Tarbela2015_2016.csv')
     else:
-        GRDC_no         = str(int(Basins[B]['grdc_no1']))
+        GRDC_no         = str(int(basin_info.loc[B]['grdc_no1']))
         p['GRDC']=glob.glob(join(files,'Q_obs',GRDC_no+'*.txt'))
     Basins[B]['p']=p
 
 #%% Find main basins with Hydrosheds basins
-if find_basins:
+if find_basins==True:
     for B in Basin_names:
-        bas_cont        = Basins[B]['continent']
+        bas_cont        = basin_info.loc[B,'continent']
         bas_cont_dir    = bas_cont+'_bas_dissolved'
         bas_dir         = join(p['Hydrosheds'],'bas_files',bas_cont_dir,bas_cont_dir+'.shp')
         Basins[B]['shp'] = gp.read_file(bas_dir,
@@ -194,23 +195,23 @@ for B in Basin_names:
     points              = gp.GeoSeries(gp.points_from_xy(Overview['lon'].values,Overview['lat'])
                                         ,index = Overview.index)
     
-    Basins[B]['GG_idxs']     =[Basins[B]['shp'].geometry.contains(point)[0] for point in points]
+    Basins[B]['GG_idxs']     =[Basins[B]['shp'].geometry.contains(point)[0] for point in points] 
     Basins[B]['GG_points']   = points[Basins[B]['GG_idxs']]
     Basins[B]['GG_area0']    = Overview['Area0'][Basins[B]['GG_idxs']] # in km2
     #Testplot:
         #Basins['RHONE']['GG_points'].plot(markersize=Basins['RHONE']['GG_area0'])
 
 #%% Load Hybas
-def load_hybas(Basins_,B_):
-    bas_cont        = Basins_[B_]['continent']
+def load_hybas(Basins,B):
+    bas_cont        = Basins[B]['continent']
 
     hybas_cont_dir      = 'hybas_'+bas_cont+'_lev00_v1c'
-    hybas_dir           =os.path.join(Basins_[B_]['p']['Hydrosheds'],
+    hybas_dir           =os.path.join(Basins[B]['p']['Hydrosheds'],
                                       'hybas_files',hybas_cont_dir,hybas_cont_dir+'.shp')
     hybas_full               = gp.read_file(hybas_dir) #Full hybas for continent
     
     main_bas   = hybas_full['MAIN_BAS'][hybas_full.geometry.contains(
-        gp.points_from_xy([Basins_[B_]['center_lon']],[Basins_[B_]['center_lat']])[0])].values[0]
+        gp.points_from_xy([Basins[B]['center_lon']],[Basins[B]['center_lat']])[0])].values[0]
     hybas      = hybas_full[hybas_full['MAIN_BAS']==main_bas]
     return hybas
 
@@ -219,21 +220,21 @@ t = time.time()
 
 # Glacier sink and GRDC location
 
-if find_sink:
+if find_sink==True:
     for B in Basin_names:
         print ('Searching for glacier sink in ', B)
         hybas = load_hybas(Basins,B) #Hydrosheds subcatchments
         hybas_glac      = [] #Create list with subcatchments containing RGI glaciers
         for  point in Basins[B]['GG_points'].values:
             hybas_glac.append(hybas[hybas.geometry.contains(point)])
-        hybas_glac = pd.concat(hybas_glac)
+        hybas_glac = pd.concat(hybas_glac) 
         
         #Determine routing using the Hydrosheds Pfafstetter coding system 
         #https://en.wikipedia.org/wiki/Pfafstetter_Coding_System & https://www.hydrosheds.org/page/hydrobasins
         for i in range(1,13):
-            key = 'PFAF_'+str(i)
+            key = 'PFAF_'+str(i) 
             #look for first PFAF that's not the same for all
-            unq = np.unique(hybas_glac[key])
+            unq = np.unique(hybas_glac[key]) 
             if len(unq)>1:
                 un = np.min(unq)
                 if un%10!=1: # If the lowest PFAF hybas the sink of the subbasin
@@ -243,19 +244,19 @@ if find_sink:
                 else: 
                     level1 = hybas[hybas[key]==un]
                     glac_sink = level1.sort_values(by='DIST_MAIN').head(1).centroid
-                break
+                break   
         Basins[B]['glac_sink'] = glac_sink
         basin_info.glac_sink_lon[B] = glac_sink.x.values[0]
         basin_info.glac_sink_lat[B] = glac_sink.y.values[0]
     basin_info.to_csv(join(files,'basin_info_45min.csv'))
 else:
     for B in Basin_names:
-        x = [Basins[B]['glac_sink_lon']]
-        y = [Basins[B]['glac_sink_lat']]
+        x = [basin_info.loc[B,'glac_sink_lon']]
+        y = [basin_info.loc[B,'glac_sink_lat']]
         Basins[B]['glac_sink']=gp.GeoSeries(gp.points_from_xy(x,y))
 
 #%% Find GRDC stations
-if find_GRDCstations:
+if find_GRDCstations ==True:
     #Load GRDC station metadata
     GRDC_meta       = pd.read_csv(os.path.join(files,'GRDC_Stations.csv')
                                   ,na_values = 'n.a.', index_col = 0)
@@ -270,23 +271,22 @@ if find_GRDCstations:
         if GR_stats.size==0: 
             print(GRDC_name+' doens"t appear in GRDC metadata')
             continue
-        
-        #Find all stations that fulfill the OBS requirements
-        GR_day = GR_stats[(GR_stats.d_start<=OBS_maxyear)&(GR_stats.d_end>=OBS_minyear)]
-        GR_day = GR_day[GR_day.d_end-GR_day.d_start>=OBS_minlen]
-        if GR_day.size==0:
-            print ('No GRDC station with full daterange for '+GRDC_name)
-            continue
-        
-        print (B+' GRDC: '+str(GR_day.shape[0])+' stations loaded with day data')
+        else: #Find all stations that fulfill the OBS requirements
+            GR_day = GR_stats[(GR_stats.d_start<=OBS_maxyear)&(GR_stats.d_end>=OBS_minyear)]
+            GR_day = GR_day[GR_day.d_end-GR_day.d_start>=OBS_minlen]
+            if GR_day.size==0:
+                print ('No GRDC station with full daterange for '+GRDC_name)
+                continue
+            else:
+                print (B+' GRDC: '+str(GR_day.shape[0])+' stations loaded with day data')
         Basins[B]['GRDC_stationlist']=GR_day
-    ##### Add GRDC station info to basin_info45min.csv
+    ##### Add GRDC station info to basin_info45min.csv 
 
 #%% Find subbasin
-if not find_GRDCstations:
-    if find_subbasin:
+if find_GRDCstations==False:
+    if find_subbasin ==True:
         for B in Basin_names:
-            print (B+' Creating subbasin')
+            print (B+' Creating subbasin')   
             
             if B in ['OELFUSA','THJORSA']: #Station is just downstream of basin borders
                 print ('Station falls outside of basin, subbasin equals basin')
@@ -351,7 +351,7 @@ if not find_GRDCstations:
                               
 
 #%% Find extents
-if not find_GRDCstations:
+if find_GRDCstations==False:
     for B in Basin_names:
         # Add a margin of 0.5 and then find the extents to match the 45 min resolution of ERA-Interim
         if B=='COPPER': #exception
@@ -382,7 +382,7 @@ if not find_GRDCstations:
 
 # This section contains a workaround due to spaces in the directory, 
 # Rewrite if your directory doesn't contain spaces
-if find_clone:
+if find_clone==True:
     for B in Basin_names:
         print ('Clone '+B)
         source = join(r'd:\Documents\clonemaps','clone_global_05min.map')
@@ -402,7 +402,7 @@ if find_clone:
         time.sleep(5)
         shutil.move(temp_dest,dest)
 #%% Plot
-if plot_basin:
+if plot_basin==True:
     for B in Basin_names:
         print ('Plot '+B)
         figsize=10
@@ -441,7 +441,7 @@ if plot_basin:
         # hybas.plot(ax=ax1,facecolor=None,edgecolor='black',alpha=0.5)
         
         #Station plot
-        if not find_GRDCstations: #Plot the selected GRDC station
+        if find_GRDCstations==False: #Plot the selected GRDC station
             Basins[B]['subshp'].plot(ax=ax1,color='tab:blue',alpha=0.5,edgecolor='black')
             GRDC = ax1.plot(Basins[B]['station_lon1'],Basins[B]['station_lat1'],
                             'v',color='yellow',label='Gauging station',
@@ -491,14 +491,14 @@ if plot_basin:
             plt.savefig(save_at,format = 'svg',bbox_inches='tight')
             plt.show()
             
-if find_GRDCstations:
+if find_GRDCstations==True:
     print ('Exit to find GRDC stations')
     sys.exit()
 
 #%% Creat isglac and isout maps
 #Isglac is a raster with a value of 1 for all glaciated pixels within the basin
 #Isout is a raster with a value of 1 for all glaciated pixels that lie for >50% outside the basin boundary
-if find_isout_isglac:
+if find_isout_isglac==True:
     for B in Basin_names:
         bbox = (Basins[B]['llc_lon'],Basins[B]['llc_lat'],
                   Basins[B]['urc_lon'],Basins[B]['urc_lat'])
@@ -510,11 +510,9 @@ if find_isout_isglac:
         print (B+' isout & isglac')
         basin_geo = Basins[B]['subshp'].geometry[0]
         # basin_geo = basin_geo.buffer(-0.001)
-        
-        #append all grid cells with glaciers in it
-        isglac_idx = [] 
-        #append all grid cells with glaciers & grid cell area >50% outside basin boundaries
-        isout_idx=[]   
+    
+        isglac_idx = [] #append all grid cells with glaciers in it
+        isout_idx=[]   #append all grid cells with glaciers & grid cell area >50% outside basin boundaries
         for i in range(len(glac_frac)):
             cell = glac_frac.geometry[i]
             if cell.intersects(basin_geo):
@@ -550,10 +548,9 @@ if find_isout_isglac:
         
         
         #Rasterize isglac & isout
-        def rasterize_glacout(vector,var_key):
+        def rasterize_glacout(vector,key):
             vector['bool'] = 1
-            llc_lon,llc_lat,urc_lon,urc_lat = [
-                Basins[B][i] for i in ['llc_lon','llc_lat','urc_lon','urc_lat']]
+            llc_lon,llc_lat,urc_lon,urc_lat = [Basins[B][i] for i in ['llc_lon','llc_lat','urc_lon','urc_lat']]
             lon360 = 360 * (llc_lon<0)
             latflip = 1-2*(llc_lat<0)
             # lon360 = 0
@@ -561,7 +558,7 @@ if find_isout_isglac:
             vector.geometry = vector.geometry.affine_transform([1,0,0,latflip,lon360,0])
             res = 0.0833333
             geo_grid=make_geocube(vector_data=vector,
-                                   measurements = [var_key],
+                                   measurements = [key],
                                   resolution = (res,res),
                                   geom = json.dumps(mapping(box(llc_lon+lon360,
                                                                 llc_lat*latflip,
@@ -598,7 +595,7 @@ else:
 
 
 #%% Establish dates
-#Q_months is made with an additional month at the start,
+#Q_months is made with an additional month at the start, 
 # otherwise xr.resample.backfill() doesn't work
 for B in Basin_names:
     if Basins[B]['llc_lat']>0:
@@ -646,7 +643,7 @@ for B in Basin_names:
     Basins[B]['Q_volume'] = (Basins[B]['GG_area0']*1e6)*Q_catch #in m3
 
 #%% Rasterize GloGEM from point data
-if find_Qm:
+if find_Qm==True:
     def rasterize(month,Basins,B,res = GHM_resolution):
         """ This function converts the monthly runoff data per individual glacier into 
         monthly runoff grid data with Geocube 
@@ -685,13 +682,13 @@ if find_Qm:
         Qm.close()
 else:
     for B in Basin_names:
-        if not os.path.isfile(Basins[B]['p']['Qm']):
+        if os.path.isfile(Basins[B]['p']['Qm'])==False:
             print ('No Qm for '+B+' this daterange')
     
 
 #%% Resampling of GloGEM data from monthly to daily resolution
 
-if find_Qd:
+if find_Qd ==True:
     for B in Basin_names:
         print ('Resampling '+B)
         #Q_catch is given at the last day of each month, backfill gives the same value to the whole month
@@ -781,7 +778,7 @@ else:
     
 #%% Spilling prevention
 # Take all runoff from isout grid cells and transfer to nearby safe grid cells
-if spilling_prevention:
+if spilling_prevention==True:
     for B in Basin_names:
         print (B+' spilling prevention')
         with xr.open_dataset(Basins[B]['p']['Qd']) as Qd_:
@@ -819,7 +816,7 @@ if spilling_prevention:
                             if ii==jj==1:
                                 spilled = spilled + Qd.R.loc[:,lats,lons].sum()
                                 print ('Runoff falls out of basin at',latss.data,lonss.data)
-                        if success:break
+                        if success==True:break
         
         R_total = Qd.R.sum() 
         outfrac = R_out/R_total
@@ -847,7 +844,7 @@ if spilling_prevention:
     # 
 #%% Add Hydrographs to the netcdf files
 for B in Basin_names:
-    if spilling_prevention:
+    if spilling_prevention==True:
         with xr.open_dataset(Basins[B]['p']['Qsp']) as Qfinal_:
             Qfinal=Qfinal_
     else: 
@@ -913,7 +910,7 @@ for B in Basin_names:
         # if ~np.isnan(Basins[B]['station_lon2']):
         #     Qfinal.attrs['station_coords2'] = (Basins[B]['station_lon2'],
         #                                       Basins[B]['station_lat2'])
-    if include_sp_aux:
+    if include_sp_aux  ==True:
         Qfinal['isout']     =(('lat','lon'),Basins[B]['isout']) #Needs to be DataArray
         Qfinal['isglac']    =(('lat','lon'),Basins[B]['isglac'])
         Qfinal['isbasin']   =(('lat','lon'),Basins[B]['isbasin'])
@@ -944,7 +941,7 @@ if save_nc:
 # OF30 = pd.read_csv(join(r'd:\Documents\Master vakken\Thesis\Code\Output',
 #                         'OF29.csv'),index_col=0)
 
-if create_worldmap:
+if create_worldmap ==True:
     
     figsize=10
     shapex=0.6
