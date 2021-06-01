@@ -1032,6 +1032,7 @@ if CREATE_WORLDMAP:
     #            'OB'     :[-3,-3],
     #            'DANUBE': [5,5]}
     
+    #Smaller figure
     arrowxy = {'AMAZON':[-3,-3],
            'IRRAWADDY':[2,7],
            'MACKENZIE':[2,0],
@@ -1124,7 +1125,3 @@ if CREATE_WORLDMAP:
     save_at = join(run_dir,r'Code\Figures\Basin_maps','worldmap25_small.svg')
     plt.savefig(save_at,bbox_inches='tight',format = 'svg')
     plt.show()
-
-
-#%% Functions
-#%%
