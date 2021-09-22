@@ -15,7 +15,7 @@ This script:
     - Calls the PCRGLOB docker and initializes the model
     - Has a setting for doing only spinup
     - Runs PRCGLOB coupled or uncoupled for one basin
-    - Saves modeled hydrograph at gauging station 
+    - Saves modeled discarge at gauging station 
     - Saves daily parameter fields into netcdf
 
 
@@ -28,7 +28,7 @@ Files needed:
     setup_05min_non-natural.ini
     clone_global_05min.map
     ERA-Interim T&P nc files
-
+    Adjusted landcover maps!
 
     
 To do:

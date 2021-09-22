@@ -32,7 +32,6 @@ Files needed:
 To do:
     isbasins
     List all necessary files
-    Sync rasterize functions
 """
 #%% Packages
 import datetime as dt
@@ -137,6 +136,7 @@ for B in basin_names:
     Basins[B]={}
     for k in basin_info.keys():
         Basins[B][k]=basin_info.loc[B,k]
+    
 
 #%% Load paths, both for loading and for saving
 for B in basin_names:
