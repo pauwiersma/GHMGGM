@@ -72,22 +72,22 @@ for i in 0,1:
 
 #Take only from grassland:
 f_pristine = 1-(f_pad+f_nonpad)
-zeromask = f_pristine>0 
 #Convert to absolute fraction, subtract f_glac and convert back to fraction of pristine landcover
 f_short_new = np.where(f_pristine>0,
                        ((f_short*f_pristine)-f_glac)/f_pristine,
                        f_short)
 
+
 print (np.nansum(f_short-f_short_new),np.nansum(f_glac)) # Shouldn't be too far apartt
 
 out_path = os.path.join(frac_path,'PCRaster_test2')
-filename ='vegf_short_minglac'
+filename ='vegf_short_minglac2'
 
-with rasterio.open(os.path.join(out_path,filename+'.map'),'w',**pris_profile) as zf_short:
-    zf_short.write_band(1,f_short)
+# with rasterio.open(os.path.join(out_path,filename+'.map'),'w',**pris_profile) as zf_short:
+#     zf_short.write_band(1,f_short_new)
 
 #Save array as .txt and convert to .map using vegf_short as a clone
-np.savetxt(os.path.join(out_path,filename+'.txt'),f_short)
+np.savetxt(os.path.join(out_path,filename+'.txt'),f_short_new)
 
 import subprocess
 os.chdir(out_path)
