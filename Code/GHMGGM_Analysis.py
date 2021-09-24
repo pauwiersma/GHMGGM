@@ -123,7 +123,7 @@ basin_info = pd.read_csv(join(
     RUN_DIR,'Files','basin_info_45min.csv'),index_col = 0)
 
 ### 25 basins used in the paper
-# BASIN_NAMES = basin_info[basin_info['suitable']=='y'].index
+BASIN_NAMES = basin_info[basin_info['suitable']=='y'].index
 # BASIN_NAMES = ['AMAZON','IRRAWADDY','MACKENZIE',
 #                 'OB','YUKON','ALSEK', 'CLUTHA', 'COLUMBIA', 'COPPER', 'DANUBE', 'DRAMSELV',
 #         'FRASER', 'GLOMA',  
@@ -135,7 +135,7 @@ basin_info = pd.read_csv(join(
 # BASIN_NAMES = ['JOEKULSA','NELSON','SANTA_CRUZ','LULE','KALIXAELVEN]
 ###Large Basins
 # BASIN_NAMES  = ['AMAZON','IRRAWADDY','MACKENZIE','OB','YUKON'] 
-BASIN_NAMES = ['CLUTHA','COLUMBIA','RHINE','SUSITNA','DANUBE']
+# BASIN_NAMES = ['CLUTHA','COLUMBIA','RHINE','SUSITNA','DANUBE']
 
 MODEL_SETUPS        = ['0','1','2']
 MODEL_NAMES         ={'0':'Modelled (Benchmark)',
@@ -146,7 +146,7 @@ MODEL_NAMES         ={'0':'Modelled (Benchmark)',
 SEASONAL            = False  #False for whole year, true for only summer
 MAIN_PLOT           =['s0','s1','s2'] #Which model settings to plot
 only_obsyears       =True  #Consider only years for which GRDC is available
-save_figs           = False
+save_figs           = True
 # new_seasonal        =False #Consider only months above certain glacier runoff threshold
 calendar_day        =False #Calculate Caldendar day bencmark (Schaefli&Gupta2007) 
 
@@ -166,12 +166,6 @@ glacier_sum_list =[]
 Qobs_list = []
 
 #%%
-
-        
-
-
-
-
 
 for Basin_name in BASIN_NAMES:
     # Load hydrographs
@@ -220,6 +214,7 @@ for Basin_name in BASIN_NAMES:
     
     #Load GRDC observations from .nc files 
     if Basin_name in ['CLUTHA','COLUMBIA','RHINE','SUSITNA','DANUBE']:
+        #NC files still has observations at basin mouth instead of more upstream
         full_date_range= pd.to_datetime(nc_obs.time.data)
         Qobs = load_hg2(str(int(basin_info.loc[Basin_name,'grdc_no1'])),
                                 full_date_range)
@@ -240,16 +235,15 @@ for Basin_name in BASIN_NAMES:
     for setup in MODEL_SETUPS:
         hgdic = {'Model_name'          :GHM_NAME,
            'Basin_name'          : Basin_name,
-           # 'GG_GCM'              : GG_GCM ,
-           # 'GG_rcp'              : GG_rcp,
+            'GG_GCM'              : GG_GCM ,
+            'GG_rcp'              : GG_rcp,
            'Setting_no'          :setup,
-           'Fromyear'           :'2000',
-           'Untilyear'          :'2012',
-           'alpha'              :'N',
-           'station_no'         :'hg'}
+           'Fromyear'           :'2001',
+           'Untilyear'          :'2016',
+           'station_no'         :'hg1'}
         hg_name = '_'.join(hgdic.values()) +'.txt'
         hg['s'+setup]=pd.read_csv(
-                join(RUN_DIR,'Output','HG_2000_2012',
+                join(RUN_DIR,'Output','HG_2001_2016_',
                 hg_name)
                 ,index_col=0,
                 parse_dates=True).loc[daterange]
@@ -478,11 +472,25 @@ for Basin_name in BASIN_NAMES:
     
     
 #%% Reload Hydrographs and glacier runoff for ensembleplots
+# Concat and sort OF's
+OF_df = pd.concat(OF_list)
+OF_df = OF_df.reindex(sorted(OF_df.columns,reverse=False),axis=1)
+
+#SAve to CSV
+OF_df.to_csv(join(RUN_DIR,'Output','OF_BE'+str(len(OF_list))+'.csv'))
+
+#
+OF_sorted= OF_df.sort_values(by=['GF99'],axis=0,ascending=False)
+# OF_sorted= OF_df.sort_values(by=['GFmax'],axis=0,ascending=False)
+
+
+
+
 HG_dic = {BASIN_NAMES[i]:HG_list[i] for i in range(len(BASIN_NAMES))}
 Qobs_dic = {BASIN_NAMES[i]:Qobs_list[i] for i in range(len(BASIN_NAMES))}
 glacier_sum_dic = {BASIN_NAMES[i]:glacier_sum_list[i] for i in range(len(BASIN_NAMES))}
 #%%
-Basins = ['ALSEK','COLUMBIA','OELFUSA','MACKENZIE','RHINE','RHONE']
+Basins = ['OELFUSA','ALSEK','RHONE','COLUMBIA','RHINE','MACKENZIE']
 # Basins = ['JOEKULSA','SANTA_CRUZ','NELSON','LULE']
 NB = len(Basins)
 
@@ -516,8 +524,8 @@ for year in range(2010,2011):
                         color=colors[c],
                         zorder = zorders[c])
                 c+=1
-        ax.plot(Qo.time,Qo,linewidth=1.5,alpha=1,label='Observed',
-                color='tab:blue')
+        ax.plot(Qo.time,Qo,linewidth=1.5,alpha=0.8,label='Observed',
+                color='k',linestyle=(0,(5,1)))
                     # CDB1 = CDB[months]
         # ax.plot(CDB1.index,CDB1,label='CDB')
         # ax.legend() 
@@ -530,12 +538,13 @@ for year in range(2010,2011):
         
         ax.set_ylabel(r'$Q_{basin}\/[m^3/s]$')
         ax.grid()
-        # gd = OF_sorted.loc[Basins[i].title(),'GF99']
-        gd = basin_info.loc[Basins[i],'glac_degree']
+        gd = OF_sorted.loc[Basins[i],'GF99']
+        # gd = basin_info.loc[Basins[i],'glac_degree']
         if i==0:
-            ax.set_title(Basins[i].title()+' (Glaciation degree ='+str(round(gd,2))+'%)')
+            # ax.set_title(Basins[i].title()+' (Glaciation degree ='+str(round(gd,2))+'%)')
+            ax.set_title(Basins[i].title()+r' ($Q_{99}$'+' glacier contribution = '+str(round(gd,2))+')')
         else:
-            ax.set_title(Basins[i].title()+' ('+str(round(gd,2))+'%)')
+            ax.set_title(Basins[i].title()+' ('+str(round(gd,2))+')')
         twin = ax.twinx()
         glacR = glacier_sum.sel(time=months)
         twin.bar(glacR.time,glacR,alpha=0.4,
@@ -553,7 +562,7 @@ for year in range(2010,2011):
         twin.set_ylim(0,twinticks[len(axticks)-1])
         twin.invert_yaxis()
         
-        if i==0:
+        if Basins[i]=='ALSEK':
             lines, labels = ax.get_legend_handles_labels()
             lines2, labels2 = twin.get_legend_handles_labels()
             twin.legend(
@@ -569,16 +578,7 @@ for year in range(2010,2011):
 
 
 #%% METRIC ANALYSIS
-# Concat and sort OF's
-OF_df = pd.concat(OF_list)
-OF_df = OF_df.reindex(sorted(OF_df.columns,reverse=False),axis=1)
 
-#SAve to CSV
-OF_df.to_csv(join(RUN_DIR,'Output','OF_BE'+str(len(OF_list))+'.csv'))
-
-#
-OF_sorted= OF_df.sort_values(by=['GF99'],axis=0,ascending=False)
-# OF_sorted= OF_df.sort_values(by=['GFmax'],axis=0,ascending=False)
 
 
 
@@ -703,7 +703,7 @@ normdif_means.quantile(0.25,axis=1).plot(ax=ax1,color='red',
                                           linewidth=1.5,label='25',
                                           linestyle='--',alpha=quantile_alpha)
 
-ax1.set_ylabel('Coupled model - Benchmark \n Normalized difference  [-]')
+ax1.set_ylabel('ND [-]')
 
 ax1.axhline(0,color='k',linestyle='--')
 monthcombis = ['January / July',
@@ -726,6 +726,7 @@ ax2.set_visible(False)
 im = ax2.imshow(np.array([[vmin,1]]),cmap=cmap)
 bar =plt.colorbar(im,fraction=0.015,label=r'$Q_{99}$'+' glacier contribution [-]')
 ax1.set_ylim(-0.8125,0.9957)
+# f1.savefig(join(FIG_DIR,'ND_NDylabel.svg'),format='svg',bbox_inches = 'tight')
 
 #%%
 NRD_concat = pd.concat(NRD_list,axis=1)
@@ -740,13 +741,13 @@ NRD_means = NRD_concat.groupby([NRD_concat.index.month]).mean()
 NRD_means.to_csv(join(RUN_DIR,'Output','RRD_means.csv'))
 
 #%%
-OF27_path = join(RUN_DIR,'Output','OF_BE25.csv')
-OF27 = pd.read_csv(OF27_path,index_col=0)
+# OF27_path = join(RUN_DIR,'Output','OF_BE25.csv')
+# OF27 = pd.read_csv(OF27_path,index_col=0)
 NRD_path = join(RUN_DIR,'Output','RRD_means.csv')
 NRD = pd.read_csv(NRD_path,index_col=0).transpose()
 NRD = NRD[NRD.index!='SANTA_CRUZ']
 # NRD = NRD[NRD.index!='RHONE']
-NRD['GF99']=OF27['GF99']
+NRD['GF99']=OF_df['GF99']
 NRD = NRD.sort_values(by='GF99',ascending=False)
 NRD.index = [NRD.index[i].title() for i in range(len(NRD.index))]
 
