@@ -49,6 +49,7 @@ import glob
 import scipy.stats as stats
 
 from matplotlib import rcParams, cycler
+from matplotlib import cm
 from matplotlib.colors import ListedColormap, LinearSegmentedColormap
 
 
@@ -123,6 +124,7 @@ basin_info = pd.read_csv(join(
     RUN_DIR,'Files','basin_info_45min.csv'),index_col = 0)
 
 ### 25 basins used in the paper
+# BASIN_NAMES = ['RHONE']
 BASIN_NAMES = basin_info[basin_info['suitable']=='y'].index
 # BASIN_NAMES = ['AMAZON','IRRAWADDY','MACKENZIE',
 #                 'OB','YUKON','ALSEK', 'CLUTHA', 'COLUMBIA', 'COPPER', 'DANUBE', 'DRAMSELV',
@@ -135,9 +137,10 @@ BASIN_NAMES = basin_info[basin_info['suitable']=='y'].index
 # BASIN_NAMES = ['JOEKULSA','NELSON','SANTA_CRUZ','LULE','KALIXAELVEN]
 ###Large Basins
 # BASIN_NAMES  = ['AMAZON','IRRAWADDY','MACKENZIE','OB','YUKON'] 
+###Basins with a second station
 # BASIN_NAMES = ['CLUTHA','COLUMBIA','RHINE','SUSITNA','DANUBE']
 
-MODEL_SETUPS        = ['0','1','2']
+MODEL_SETUPS        = ['2','0','1']
 MODEL_NAMES         ={'0':'Modelled (Benchmark)',
                       '1':'Modelled (Bare)',
                       '2':'Modelled (Coupled)'}
@@ -328,10 +331,18 @@ for Basin_name in BASIN_NAMES:
     if 's1' in hg.keys():
         routed_R    = hg['s2']-hg['s1'] #routed glacier runoff
         glac_frac = routed_R.hg / hg['s2'].hg
+        glac_frac_obs = routed_R.hg / Qobs.to_dataframe().hg
         max_frac  = glac_frac.max() #.max() or .quantile()
         OF['GFmax'] = max_frac
         OF['GF99']  = glac_frac.quantile(0.99)
+        OF['fQ95'] = glac_frac_obs.quantile(0.95)
+        OF['fQ90'] = glac_frac_obs.quantile(0.90)
         OF['GFmean'] = glac_frac.mean()
+        
+        # basin_info.fQ99[Basin_name] = OF['fQ99']
+        # basin_info.GF99[Basin_name] = OF['GF99']
+        basin_info.loc[Basin_name,'fQ90'] = OF['fQ90']
+        basin_info.loc[Basin_name,'GF99'] = OF['GF99']
 
     OF_list.append(pd.DataFrame(OF,index=[Basin_name]))
     HG_list.append(hg)
@@ -370,15 +381,20 @@ for Basin_name in BASIN_NAMES:
     plt.subplots_adjust(hspace=0.22) #was 0.21
     f1.suptitle(Basin_name[0]+Basin_name[1:].lower(),
                 size='xx-large',y=(figheigth-0.15*topmargin)/figheigth)
-    colors = ['#d95f02','#7570b3','#1b9e77'] #colorblind safe
+    # colors = ['#d95f02','#7570b3','#1b9e77'] #colorblind safe
     #colors = ['tab:orange','tab:'red','tab:'green']
+    
+    turbo = cm.get_cmap('turbo',10)
+    colors = turbo((9,1,5))
+    
+    
     for i in range(N): #One subplot per year
         ax = axes[i]
         months = months_slice(years[i],hemisphere,SEASONAL)
         Qo = Qobs.sel(time=months)
 
         c=0
-        zorders  =[2,1,2]
+        zorders  =[2,1,0]
         for key,item in hg.items():
             if key in MAIN_PLOT:
                 Qm = item[months]
@@ -473,6 +489,9 @@ for Basin_name in BASIN_NAMES:
     
 #%% Reload Hydrographs and glacier runoff for ensembleplots
 # Concat and sort OF's
+basin_info.to_csv(join(RUN_DIR,'Files','basin_info_45min.csv'))
+
+
 OF_df = pd.concat(OF_list)
 OF_df = OF_df.reindex(sorted(OF_df.columns,reverse=False),axis=1)
 
@@ -483,6 +502,7 @@ OF_df.to_csv(join(RUN_DIR,'Output','OF_BE'+str(len(OF_list))+'.csv'))
 OF_sorted= OF_df.sort_values(by=['GF99'],axis=0,ascending=False)
 # OF_sorted= OF_df.sort_values(by=['GFmax'],axis=0,ascending=False)
 
+#Save Q99obs to basin_info
 
 
 
@@ -504,6 +524,7 @@ for year in range(2010,2011):
     #             size='xx-large',y=(figheigth-0.15*topmargin)/figheigth)
     # colors = ['tab:orange','tab:red','tab:green']
     colors = ['#d95f02','#7570b3','#1b9e77'] #colorblind safe
+    colors = cm.get_cmap('turbo',10)((9,1,5))
     for i in range(NB):
         hg = HG_dic[Basins[i]]
         Qobs = Qobs_dic[Basins[i]]
@@ -512,9 +533,10 @@ for year in range(2010,2011):
         ax = axes[i]
         months = months_slice(year,hemisphere,SEASONAL)
         Qo = Qobs.sel(time=months)
-    
+        
+        
         c=0
-        zorders = [2,1,2]
+        zorders = [2,1,0]
         for key,item in hg.items():
             if key in MAIN_PLOT:
                 Qm = item[months]
@@ -542,7 +564,7 @@ for year in range(2010,2011):
         # gd = basin_info.loc[Basins[i],'glac_degree']
         if i==0:
             # ax.set_title(Basins[i].title()+' (Glaciation degree ='+str(round(gd,2))+'%)')
-            ax.set_title(Basins[i].title()+r' ($Q_{99}$'+' glacier contribution = '+str(round(gd,2))+')')
+            ax.set_title(Basins[i].title()+r' ($fQ_{99}$'+' = '+str(round(gd,2))+')')
         else:
             ax.set_title(Basins[i].title()+' ('+str(round(gd,2))+')')
         twin = ax.twinx()

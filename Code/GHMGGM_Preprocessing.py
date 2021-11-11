@@ -98,12 +98,12 @@ OBS_MINYEAR         =2000
 OBS_MAXYEAR         =2012
 OBS_MINLEN          =5
 
-SAVE_FIG = False
+SAVE_FIG = True
 
 #Find_subbasin==True will find the subbasin upstream of the selected GRDC station
 FIND_SUBBASIN       =False #True=find based on GRDC_station, False=Load
 FIND_CLONE          =False #True= find clone with margins that are compatible with PCRGLOB, False = Load
-PLOT_BASIN          =False
+PLOT_BASIN          =True
 
 
 
@@ -127,7 +127,7 @@ T_THRESHOLD         =268.15 #Daily mean T threshold above which weight is given 
 #Load basin_info.csv with all basin info
 basin_info = pd.read_csv(join(files,'basin_info_45min.csv'),index_col = 0)
 basin_names = basin_info[basin_info['suitable']=='y'].index
-basin_names = ['RHONE','ALSEK']
+# basin_names = ['RHONE','ALSEK']
 
 
 #%% Create dictionary for each basin in loop
@@ -406,7 +406,20 @@ if FIND_CLONE:
 #%% Plot
 if PLOT_BASIN:
     for B in basin_names:
-        print ('Plot '+B)
+        
+        ### Part to load RGI glacier shapefile
+        # RGI_path = Basins[B]['RGI_dir']
+        # if 'RGI02' in RGI_path:
+        #     RGI_path = 'RGI02_WesternCanadaUS'
+        # number,cont = RGI_path.split('_')
+        # realpath = glob.glob(os.path.join('D:\Documents\Master vakken\Thesis\Data\GLIMS (Randolph)',
+        #                         '*_'+cont,'*_'+cont+'.shp'))[0]
+        # rgishp = gp.read_file(realpath)
+        # bpoints = Basins[B]['GG_points'].index
+        # rgibasin = rgishp.iloc[bpoints[bpoints<rgishp.index.max()]-1,:].geometry
+        # print (bpoints.max(),rgishp.index.max())
+        
+        # print ('Plot '+B)
         FIGSIZE=10
         SHAPEX=0.8
         f1 = plt.figure(figsize=(FIGSIZE,SHAPEX*FIGSIZE))
@@ -467,6 +480,20 @@ if PLOT_BASIN:
         Basins[B]['GG_points'].plot(ax=ax1,color='red',
                         markersize=Basins[B]['GG_area0']*2,label='Glaciers')
         
+        ### Part to load and plot RGI glacier shapefile
+        # RGI_path = Basins[B]['RGI_dir']
+        # if 'RGI02' in RGI_path:
+        #     RGI_path = 'RGI02_WesternCanadaUS'
+        # number,cont = RGI_path.split('_')
+        # realpath = glob.glob(os.path.join('D:\Documents\Master vakken\Thesis\Data\GLIMS (Randolph)',
+        #                         '*_'+cont,'*_'+cont+'.shp'))[0]
+        # rgishp = gp.read_file(realpath)
+        # bpoints = Basins[B]['GG_points'].index
+        # rgibasin = rgishp.iloc[bpoints[bpoints<rgishp.index.max()]-1,:].geometry
+        # print (bpoints.max(),rgishp.index.max())
+        # rgibasin.plot(ax=ax1,color='white')
+        
+        
         #Plot glacier sink
         if len(Basins[B]['glac_sink'])==0:
             print ('No glacier sink found')
@@ -479,7 +506,7 @@ if PLOT_BASIN:
                    markersize=6,label='Glacier sink')
         ax1.set_title(B.title())
         red_dot = Line2D([0],[0],marker='o',linestyle='None',
-                   markerfacecolor='red',markeredgecolor='red',
+                   markerfacecolor='white',markeredgecolor='black',
                    markersize=5,label='Glaciers')
         ax1.legend(handles = [red_dot,GRDC,green_dot])
         # if SAVE_FIG == True:
@@ -489,7 +516,7 @@ if PLOT_BASIN:
         
         #save as vectorplot 
         if SAVE_FIG:
-            save_at = join(run_dir,r'Code\Figures\Basin_maps\subbasins',B+'_map.svg')
+            save_at = join(run_dir,r'Figures\Basin_maps\subbasins',B+'_map_RGI.svg')
             plt.savefig(save_at,format = 'svg',bbox_inches='tight')
             plt.show()
             
@@ -497,7 +524,7 @@ if FIND_GRDC_STATIONS:
     print ('Exit to find GRDC stations')
     sys.exit()
 
-#%% Rasterize function using geocube
+#%% Rasterize function using geocube (point runoff data to raster runoff data)
 def rasterize(vector,var_key,merge_algorithm='replace'):
     vector['bool'] = 1
     llc_lon,llc_lat,urc_lon,urc_lat = [
@@ -581,7 +608,6 @@ if FIND_ISOUT_ISGLAC:
         Basins[B]['subshp'].plot(ax=ax1,facecolor='None',edgecolor='tab:blue',label='Basin shapefile')
         # ax1.legend(['a','b','c','d'])
         ax1.set_title(B.title())
-        
         
         #Rasterize isglac & isout
 
