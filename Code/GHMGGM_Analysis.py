@@ -149,7 +149,8 @@ MODEL_NAMES         ={'0':'Modelled (Benchmark)',
 SEASONAL            = False  #False for whole year, true for only summer
 MAIN_PLOT           =['s0','s1','s2'] #Which model settings to plot
 only_obsyears       =True  #Consider only years for which GRDC is available
-save_figs           = True
+PLOT_BOOL           = True
+save_figs           = False
 # new_seasonal        =False #Consider only months above certain glacier runoff threshold
 calendar_day        =False #Calculate Caldendar day bencmark (Schaefli&Gupta2007) 
 
@@ -290,7 +291,7 @@ for Basin_name in BASIN_NAMES:
         # Qnormdif = Q02dif/Q02dif.max()
         normdiflist.append(Qnormdif.rename(columns={'hg':Basin_name}))
     
-        #Calculate NRD
+        #Calculate RRD
     if ('s0' in hg.keys())&('s1' in hg.keys())&('s2' in hg.keys()):
         #Make Dataframe with all hydrographs 
         DF = pd.concat([hg['s0'],hg['s1'],hg['s2']],axis=1)
@@ -357,89 +358,89 @@ for Basin_name in BASIN_NAMES:
     # Q02dif      =Q2-Q0
     
 ##%% Plotting 
-
-    # Plotting parameters
-    if only_obsyears==True:
-        years = Q_years
-    else: 
-        years=hg_years
-    if years[0]==2000:
-        years = years[1:]
-    N = len(years)
-    
-
-    #% Regular plot
-    multiplier = 1.7
-    figheigth = multiplier*N #was 2.5
-    topmargin = 1
-    
-    
-    
-    ### Main hydrograps plot
-    f1,(axes) = plt.subplots(N,1,figsize=(10,figheigth),sharey=True)
-    f1.subplots_adjust(top=0.8)
-    plt.subplots_adjust(hspace=0.22) #was 0.21
-    f1.suptitle(Basin_name[0]+Basin_name[1:].lower(),
-                size='xx-large',y=(figheigth-0.15*topmargin)/figheigth)
-    # colors = ['#d95f02','#7570b3','#1b9e77'] #colorblind safe
-    #colors = ['tab:orange','tab:'red','tab:'green']
-    
-    turbo = cm.get_cmap('turbo',10)
-    colors = turbo((9,1,5))
-    
-    
-    for i in range(N): #One subplot per year
-        ax = axes[i]
-        months = months_slice(years[i],hemisphere,SEASONAL)
-        Qo = Qobs.sel(time=months)
-
-        c=0
-        zorders  =[2,1,0]
-        for key,item in hg.items():
-            if key in MAIN_PLOT:
-                Qm = item[months]
-                ax.plot(Qm.index,Qm,
-                        linewidth=1.5,
-                        label=MODEL_NAMES[key[1]],
-                        color=colors[c],
-                        zorder = zorders[c])
-                c+=1
-        ax.plot(Qo.time,Qo,linewidth=1.5,alpha=0.8,label='Observed',
-                color='k',linestyle=(0,(5,1)))
-        ax.set_ylim(0,ax.get_yticks()[-1])
-        xticks = ax.get_xticks()
-        ax.tick_params(axis='both', which='major', labelsize=8)
-        ax.set_xlim(xticks[0]-30,xticks[-1]+29)
-        ax.set_ylabel(r'$Q_{basin}\/[m^3/s]$')
-        ax.grid()
-
-        #Twin reverse axis for the glacier runoff barplot
-        twin = ax.twinx()
-        glacR = glacier_sum.sel(time=months)
-        twin.bar(glacR.time,glacR,alpha=0.4,
-                  width = 1.5, label='GloGEM',color='tab:blue')
-        twin.set_ylabel(r'$Q_{glacier}\/ [m^3/s]$')
-        twin.set_ylim(0,glacier_sum.data.max()*1.5)
+    if PLOT_BOOL:
+            # Plotting parameters
+        if only_obsyears==True:
+            years = Q_years
+        else: 
+            years=hg_years
+        if years[0]==2000:
+            years = years[1:]
+        N = len(years)
         
-        axticks = ax.get_yticks()
-        twinticks = twin.get_yticks()
-        while len(twinticks)<len(axticks):
-            twinticks = np.append(twinticks,twinticks[-1]+twinticks[1])
-        twin.set_ylim(0,twinticks[len(axticks)-1])
-        twin.invert_yaxis()
+    
+        #% Regular plot
+        multiplier = 1.7
+        figheigth = multiplier*N #was 2.5
+        topmargin = 1
         
-        if i==0:
-            lines, labels = ax.get_legend_handles_labels()
-            lines2, labels2 = twin.get_legend_handles_labels()
-            twin.legend(
-                lines + lines2, labels + labels2, loc=(0.8, 1.1), prop={"size": 8},
-            )
-    ##Make space above needed for title and legend
-    make_space_above(axes,topmargin=topmargin)
-    if save_figs==True:    
-        f1.savefig(join(FIG_DIR,'Main_plots_colorblind',
-                        '_'.join([Basin_name,'main'])+'.svg'),format='svg',
-                    bbox_inches = 'tight')
+        
+        
+        ### Main hydrograps plot
+        f1,(axes) = plt.subplots(N,1,figsize=(10,figheigth),sharey=True)
+        f1.subplots_adjust(top=0.8)
+        plt.subplots_adjust(hspace=0.22) #was 0.21
+        f1.suptitle(Basin_name.title(),
+                    size='xx-large',y=(figheigth-0.15*topmargin)/figheigth)
+        # colors = ['#d95f02','#7570b3','#1b9e77'] #colorblind safe
+        #colors = ['tab:orange','tab:'red','tab:'green']
+        
+        turbo = cm.get_cmap('turbo',10)
+        colors = turbo((9,1,5))
+        
+        
+        for i in range(N): #One subplot per year
+            ax = axes[i]
+            months = months_slice(years[i],hemisphere,SEASONAL)
+            Qo = Qobs.sel(time=months)
+    
+            c=0
+            zorders  =[2,1,0]
+            for key,item in hg.items():
+                if key in MAIN_PLOT:
+                    Qm = item[months]
+                    ax.plot(Qm.index,Qm,
+                            linewidth=1.5,
+                            label=MODEL_NAMES[key[1]],
+                            color=colors[c],
+                            zorder = zorders[c])
+                    c+=1
+            ax.plot(Qo.time,Qo,linewidth=1.5,alpha=0.8,label='Observed',
+                    color='k',linestyle=(0,(5,1)))
+            ax.set_ylim(0,ax.get_yticks()[-1])
+            xticks = ax.get_xticks()
+            ax.tick_params(axis='both', which='major', labelsize=8)
+            ax.set_xlim(xticks[0]-30,xticks[-1]+29)
+            ax.set_ylabel(r'$Q_{basin}\/[m^3/s]$')
+            ax.grid()
+    
+            #Twin reverse axis for the glacier runoff barplot
+            twin = ax.twinx()
+            glacR = glacier_sum.sel(time=months)
+            twin.bar(glacR.time,glacR,alpha=0.4,
+                      width = 1.5, label='GloGEM',color='tab:blue')
+            twin.set_ylabel(r'$Q_{glacier}\/ [m^3/s]$')
+            twin.set_ylim(0,glacier_sum.data.max()*1.5)
+            
+            axticks = ax.get_yticks()
+            twinticks = twin.get_yticks()
+            while len(twinticks)<len(axticks):
+                twinticks = np.append(twinticks,twinticks[-1]+twinticks[1])
+            twin.set_ylim(0,twinticks[len(axticks)-1])
+            twin.invert_yaxis()
+            
+            if i==0:
+                lines, labels = ax.get_legend_handles_labels()
+                lines2, labels2 = twin.get_legend_handles_labels()
+                twin.legend(
+                    lines + lines2, labels + labels2, loc=(0.8, 1.1), prop={"size": 8},
+                )
+        ##Make space above needed for title and legend
+        make_space_above(axes,topmargin=topmargin)
+        if save_figs==True:    
+            f1.savefig(join(FIG_DIR,'Main_plots_colorblind',
+                            '_'.join([Basin_name,'main'])+'.svg'),format='svg',
+                        bbox_inches = 'tight')                          
 
 
         ###additional plot to visualize the metrics over the months 
@@ -489,6 +490,7 @@ for Basin_name in BASIN_NAMES:
     
 #%% Reload Hydrographs and glacier runoff for ensembleplots
 # Concat and sort OF's
+
 basin_info.to_csv(join(RUN_DIR,'Files','basin_info_45min.csv'))
 
 
@@ -559,12 +561,13 @@ for year in range(2010,2011):
         # ax.tick_params(axis='both', which='minor', labelsize=8)
         
         ax.set_ylabel(r'$Q_{basin}\/[m^3/s]$')
-        ax.grid()
-        gd = OF_sorted.loc[Basins[i],'GF99']
+        ax.grid(alpha=0.6)
+        gd = OF_sorted.loc[Basins[i].title(),'GF99']
         # gd = basin_info.loc[Basins[i],'glac_degree']
         if i==0:
             # ax.set_title(Basins[i].title()+' (Glaciation degree ='+str(round(gd,2))+'%)')
-            ax.set_title(Basins[i].title()+r' ($fQ_{99}$'+' = '+str(round(gd,2))+')')
+            # ax.set_title(Basins[i].title()+r' ($fQ_{99}$'+' = '+str(round(gd,2))+')')
+            ax.set_title(Basins[i].title()+r' ($P_{99}$ glacier contribution '+' = '+str(round(gd,2))+')')
         else:
             ax.set_title(Basins[i].title()+' ('+str(round(gd,2))+')')
         twin = ax.twinx()
@@ -593,8 +596,9 @@ for year in range(2010,2011):
            
         if i==NB-1:
             binitials = ''.join([B[0] for B in Basins ])
-            f1.savefig(join(FIG_DIR,'Ensembleplots','Ensembleplot'+binitials+str(year)+'_nowhitespace.svg'),format='svg',
-            bbox_inches = 'tight')
+            if save_figs==True:
+                f1.savefig(join(FIG_DIR,'Ensembleplots','Ensembleplot'+binitials+str(year)+'_nowhitespace_P99.svg'),format='svg',
+                bbox_inches = 'tight')
     
     
 
@@ -725,30 +729,35 @@ normdif_means.quantile(0.25,axis=1).plot(ax=ax1,color='red',
                                           linewidth=1.5,label='25',
                                           linestyle='--',alpha=quantile_alpha)
 
-ax1.set_ylabel('ND [-]')
+ax1.set_ylabel('Coupled model - Benchmark\n Normalized difference [-] ')
 
 ax1.axhline(0,color='k',linestyle='--')
-monthcombis = ['January / July',
-               'February / August',
-               'March / September',
-               'April / October',
-               'May / November',
-               'June / December',
-               'July / January',
-               'August / February',
-               'September / March',
-               'October / April',
-               'November / May',
-               'December / June']
+# monthcombis = ['January / July',
+#                'February / August',
+#                'March / September',
+#                'April / October',
+#                'May / November',
+#                'June / December',
+#                'July / January',
+#                'August / February',
+#                'September / March',
+#                'October / April',
+#                'November / May',
+#                'December / June']
+monthcombis = ['January','February','March','April','May','June','July','August','September','October','November','December']
 plt.xticks(xticks[:-1],monthcombis,rotation = 45)
 ax1.grid()
 ax1.set_xlim(normdif_means.index[0],normdif_means.index[-1])
 ax2 = f1.add_axes([0,0,0.93,1])
 ax2.set_visible(False)
 im = ax2.imshow(np.array([[vmin,1]]),cmap=cmap)
-bar =plt.colorbar(im,fraction=0.015,label=r'$Q_{99}$'+' glacier contribution [-]')
+bar =plt.colorbar(im,fraction=0.015,label=r'$P_{99}$'+' glacier contribution [-]')
+# bar =plt.colorbar(im,fraction=0.015,label=r'FQ99 [-]')
+ax1.legend(loc='upper left',title='Percentiles')
+
 ax1.set_ylim(-0.8125,0.9957)
-# f1.savefig(join(FIG_DIR,'ND_NDylabel.svg'),format='svg',bbox_inches = 'tight')
+if save_figs==True:
+    f1.savefig(join(FIG_DIR,'ND_longnames_percentiles_P99.svg'),format='svg',bbox_inches = 'tight')
 
 #%%
 NRD_concat = pd.concat(NRD_list,axis=1)
@@ -818,11 +827,14 @@ axins = inset_axes(ax1,
                     # borderpad=0,
                    )
 cbar = f1.colorbar(im,cax=axins,ticks=np.linspace(0,1,6),fraction=0.04
-                   ,label=r'$Q_{99}$'+' glacier contribution [-]')
+                    ,label=r'$P_{99}$'+' glacier contribution [-]')
+# cbar = f1.colorbar(im,cax=axins,ticks=np.linspace(0,1,6),fraction=0.04
+                    # ,label=r'FQ99 [-]')
 
 ax1.axvline(0,linestyle='--',color='black',alpha=0.6)
 
-# f1.savefig(join(FIG_DIR,'RRD_00001.svg'),format='svg',bbox_inches = 'tight')
+if save_figs==True:
+    f1.savefig(join(FIG_DIR,'RRD_PQ99.svg'),format='svg',bbox_inches = 'tight')
 
 
 
@@ -845,6 +857,8 @@ ax1.axvline(0,linestyle='--',color='black',alpha=0.6)
 
 #%% Calculate percentages normdif_stack = pd.concat(normdiflist,axis=1)
 normdif_stack = pd.concat(normdiflist,axis=1)
+
+#Shift southern hemisphere by6 months
 for b in ['SANTA_CRUZ','NEGRO','AMAZON','CLUTHA']: #NEGRO, AMAZON, SANTA CRUZ, CLUTHA
     if b in normdif_stack.keys():    
         normdif_stack[b]=normdif_stack[b].shift(periods=182,freq='D')
@@ -853,17 +867,25 @@ normdif_means = normdif_stack.groupby([normdif_stack.index.month, normdif_stack.
 normdif_means.index=normdif_stack['2004'].index
 
 
-import matplotlib.colors
+normdif_means.columns = OF_df.GF99.values
+normdif_means = normdif_means.reindex(sorted(normdif_means.columns),axis=1)
 
+import matplotlib.colors
 pubu = plt.get_cmap('PuBu',200)
 cmap = ListedColormap(pubu(range(200))[40:])
 
 
 vmin =0
 norm = matplotlib.colors.Normalize(vmin=vmin, vmax=1)
-rcParams['axes.prop_cycle'] = cycler(color=cmap(norm(OF_df.GF99.values)))
+
+OF_sorted_ascending= OF_df.sort_values(by=['GF99'],axis=0,ascending=True)
+
+rcParams['axes.prop_cycle'] = cycler(color=cmap(norm(OF_sorted_ascending.GF99.values)))
 
 xticks = normdif_means.plot(linewidth=1.2,alpha =0,legend=False).get_xticks()
+
+
+
 
 f1,(ax1,ax2) = plt.subplots(2,1,figsize=(12,10),sharex=True,
                             gridspec_kw={
@@ -882,21 +904,24 @@ normdif_means.quantile(0.25,axis=1).plot(ax=ax1,color='red',
                                           linestyle='--',alpha=1)
 
 ax1.set_ylabel('Coupled model - Benchmark \n Normalized difference  [-]')
+# ax1.set_ylabel('ND [-]')
 # ax1.set_title('Comparison between Benchmark and Coupled')
-ax1.legend(loc='upper left',title='Quantiles')
+ax1.legend(loc='upper left',title='Percentiles')
 ax1.axhline(0,color='k',linestyle='--')
-monthcombis = ['January / July',
-               'February / August',
-               'March / September',
-               'April / October',
-               'May / November',
-               'June / December',
-               'July / January',
-               'August / February',
-               'September / March',
-               'October / April',
-               'November / May',
-               'December / June']
+# monthcombis = ['January / July',
+#                'February / August',
+#                'March / September',
+#                'April / October',
+#                'May / November',
+#                'June / December',
+#                'July / January',
+#                'August / February',
+#                'September / March',
+#                'October / April',
+#                'November / May',
+#                'December / June']
+monthcombis = ['January','February','March','April','May','June','July','August','September','October','November','December']
+
 # plt.xticks(xticks[:-1],monthcombis,rotation = 45)
 ax1.grid()
 ax1.set_xlim(normdif_means.index[0],normdif_means.index[-1])
@@ -905,7 +930,7 @@ ax1.text(xticks[-1]-10,0.85,'a)',size=15)
 xtickss = ax1.get_xticks()
 xtickss = np.append(xtickss,xtickss[-1]+30)
 summer ={}
-for Basin_name in BASIN_NAMES:
+for Basin_name in OF_sorted_ascending.index:
     ratio = HG_dic[Basin_name]['s2']/HG_dic[Basin_name]['s0']
     # for b in ['SANTA_CRUZ','NEGRO','AMAZON','CLUTHA']: #NEGRO, AMAZON, SANTA CRUZ, CLUTHA
     if Basin_name in['SANTA_CRUZ','NEGRO','AMAZON','CLUTHA']:    
@@ -913,16 +938,18 @@ for Basin_name in BASIN_NAMES:
 
     
     ratio_monthly = ratio.groupby([ratio.index.month]).mean()
-    ratio_daily = ratio.groupby([ratio.index.month, ratio.index.day]).mean()
+    # ratio_daily = ratio.groupby([ratio.index.month, ratio.index.day]).mean()
     # ratio_daily.plot(ax=ax1,legend=False)
-    # ratio_monthly.plot(x=xticks,ax=ax2,legend=False)
+    # ratio_monthly.plot(ax=ax2,legend=False)
     ratio_monthly = np.append(ratio_monthly.values,ratio_monthly.values[0])
-    ax2.plot(xtickss,ratio_monthly,alpha=0)
+    ax2.plot(xtickss,ratio_monthly,alpha=1)
     summer[Basin_name]=(np.mean(ratio_monthly[6:8]))
 ax2.axhline(1,linestyle='--',color='black')
 plt.xticks(xticks[:-1],monthcombis,rotation=30)
 ax2.grid()
 ax2.set_ylabel('Coupled model / Benchmark \n Ratio [-]')
+# ax2.set_ylabel('Ratio [-]')
+
 ax2.text(xticks[-1]-10,3.2,'b)',size=15)
 # ax2.set_xticks(ax2.get_xticks(),monthcombis)
 # newticks=ax2.get_xticks()-10
@@ -934,11 +961,11 @@ ax2.text(xticks[-1]-10,3.2,'b)',size=15)
 ax3 = f1.add_axes([0,0,0.93,1])
 ax3.set_visible(False)
 im = ax3.imshow(np.array([[vmin,1]]),cmap=cmap)
-bar =plt.colorbar(im,fraction=0.015,label=r'$Q_{99}$'+' glacier contribution [-]')
+bar =plt.colorbar(im,fraction=0.015,label=r'$P_{99}$'+' glacier contribution [-]')
+# bar =plt.colorbar(im,fraction=0.015,label=r'FQ99 [-]')
 
-
-
-f1.savefig(join(FIG_DIR,'ND+0Ratio_vectorplot.svg'),format='svg',bbox_inches = 'tight')
+if save_figs==True:
+    f1.savefig(join(FIG_DIR,'ND+ratio_P99_longlabels.svg'),format='svg',bbox_inches = 'tight')
 
 
 # xlabels=ax1.get_xticklabels()
@@ -955,26 +982,5 @@ f1.savefig(join(FIG_DIR,'ND+0Ratio_vectorplot.svg'),format='svg',bbox_inches = '
 
 
 
-
-
-
-
-
-
-# f1,ax1  = plt.subplots(figsize=(10,4))
-# for Basin_name in BASIN_NAMES:
-#     ratio = HG_dic[Basin_name]['s2']/HG_dic[Basin_name]['s0']
-#     # for b in ['SANTA_CRUZ','NEGRO','AMAZON','CLUTHA']: #NEGRO, AMAZON, SANTA CRUZ, CLUTHA
-#     if Basin_name in['SANTA_CRUZ','NEGRO','AMAZON','CLUTHA']:    
-#         ratio=ratio.shift(periods=182,freq='D')
-
-    
-#     ratio_monthly = ratio.groupby([ratio.index.month]).mean()
-#     ratio_daily = ratio.groupby([ratio.index.month, ratio.index.day]).mean()
-#     # ratio_daily.plot(ax=ax1,legend=False)
-#     ratio_monthly.plot(ax=ax1,legend=False)
-# ax1.grid()
-# ax1.set_ylabel('Ratio [-]')
-# ax1.set_xtick
 
 
