@@ -112,7 +112,7 @@ FIG_DIR             =join(RUN_DIR,'Figures')
 
 
 basin_info = pd.read_csv(join(
-    RUN_DIR,'Files','basin_info_45min.csv'),index_col = 0)
+    RUN_DIR,'Files','GHMGGM_basin_info.csv'),index_col = 0)
 
 ### 25 basins used in the paper
 # BASIN_NAMES = ['RHONE']
@@ -467,7 +467,7 @@ for Basin_name in BASIN_NAMES:
 #%% Reload Hydrographs and glacier runoff for ensembleplots
 # Concat and sort OF's
 
-basin_info.to_csv(join(RUN_DIR,'Files','basin_info_45min.csv'))
+basin_info.to_csv(join(RUN_DIR,'Files','GHMGGM_basin_info.csv'))
 
 
 OF_df = pd.concat(OF_list)
@@ -487,7 +487,7 @@ OF_sorted= OF_df.sort_values(by=['GF99'],axis=0,ascending=False)
 HG_dic = {BASIN_NAMES[i]:HG_list[i] for i in range(len(BASIN_NAMES))}
 Qobs_dic = {BASIN_NAMES[i]:Qobs_list[i] for i in range(len(BASIN_NAMES))}
 glacier_sum_dic = {BASIN_NAMES[i]:glacier_sum_list[i] for i in range(len(BASIN_NAMES))}
-#%%
+#%% Plot one year of multiple basin in one figure
 Basins = ['OELFUSA','ALSEK','RHONE','COLUMBIA','RHINE','MACKENZIE']
 # Basins = ['JOEKULSA','SANTA_CRUZ','NELSON','LULE']
 NB = len(Basins)

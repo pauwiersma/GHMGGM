@@ -6,7 +6,7 @@ Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
 (2/3): ewatercycle_runs
 
 This script:
-    - Loads the NetCDF-files of (1/3): Preprocessing and couples them to PCR-GLOBWB
+    - Loads the NetCDF-files of (1/3): Preprocessing and couples them to PCR-GLOBWB 2
     - Loads and adjusts the PCRGLOB inifile
     - Calls the PCRGLOB docker and initializes the model
     - Has a setting for doing only spinup
@@ -21,10 +21,11 @@ This script:
 
 to do
 - Follow PIP8 naming conventions
-- Mention you make a function out of this script
+- Mention you can make a function out of this script
     Make logging optional for use with eval_inputs.py
     Make script function optional
     Station 2? Is it used in preprocessing?
+        NO, take it out
     daily_outputs too large?
     Remove also the 1 behind station?
 
@@ -113,7 +114,7 @@ def find_nearest(array, value):
 #%% Setup
 timer1      = time.time()
 ### Standard naming for runs
-run_name = '_'.join(['PCRG',
+RUN_NAME = '_'.join(['PCRG',
                         BASIN_NAME,
                         GG_GCM,
                         GG_RCP,
@@ -130,14 +131,14 @@ print('Runtime: '+str(GG_FROMYEAR)+' - '+str(GG_UNTILYEAR))
   
 
 if SETUP==0:
-    couple_GG       =False
-    adjust_landcov   =False
+    COUPLE_GLOGEM       =False
+    ADJUST_LANDCOVER   =False
 elif SETUP==1:
-    couple_GG       =False
-    adjust_landcov  = 'GRASSLANDS'
+    COUPLE_GLOGEM       =False
+    ADJUST_LANDCOVER  = 'GRASSLANDS'
 elif SETUP==2: 
-    couple_GG       = True
-    adjust_landcov  ='GRASSLANDS'
+    COUPLE_GLOGEM       = True
+    ADJUST_LANDCOVER  ='GRASSLANDS'
 else: 
     print('Not a valid model setup')
     sys.exit()
@@ -176,44 +177,44 @@ parameter_set = build_from_urls(config_format = 'ini',
 
 #%% make clonemap from global clonemap and setup daterange
 print('make clonemap and setup config')
-clone_path  = join(RUN_DIR,'global_05min/cloneMaps')
-orig_clone  = 'clone_global_05min.map'
-dest_clip   = BASIN_NAME+'_05min.map'
+CLONE_PATH  = join(RUN_DIR,'global_05min/cloneMaps')
+ORIG_CLONE  = 'clone_global_05min.map'
+DEST_CLIP   = BASIN_NAME+'_05min.map'
 
 
-ullon,lrlat     = nc.llc.astype(float).astype(str)
-lrlon,ullat     = nc.urc.astype(float).astype(str)
-nlat,nlon       = nc.dims['lat'],nc.dims['lon']
+UL_LON,LR_LAT     = nc.llc.astype(float).astype(str)
+LR_LON,UL_LAT     = nc.urc.astype(float).astype(str)
+N_NLAT,N_LON       = nc.dims['lat'],nc.dims['lon']
 
 
 ## Make clip of global clonemap
-command     = 'gdal_translate -of PCRASTER -projwin '+ullon+' '+ullat+' '+lrlon+' '+lrlat+' '\
-    +join(clone_path,orig_clone)+' '\
-    + join(clone_path,dest_clip)
+command     = 'gdal_translate -of PCRASTER -projwin '+UL_LON+' '+UL_LAT+' '+LR_LON+' '+LR_LAT+' '\
+    +join(CLONE_PATH,ORIG_CLONE)+' '\
+    + join(CLONE_PATH,DEST_CLIP)
 subprocess.Popen(command,shell=True)
 
 
 
 ##Check if basin in Northern or Southern hemisphere and set daterange accordingly
-if int(float(lrlat))>0:
-  startT   = str(GG_FROMYEAR-1)+'-10-01'
-  endT     = str(GG_UNTILYEAR)+'-09-30'
+if int(float(LR_LAT))>0:
+  START_TIME   = str(GG_FROMYEAR-1)+'-10-01'
+  END_TIME     = str(GG_UNTILYEAR)+'-09-30'
 else:
-  startT   = str(GG_FROMYEAR-1)+'-04-01'
-  endT     = str(GG_UNTILYEAR)+'-03-31'      
+  START_TIME   = str(GG_FROMYEAR-1)+'-04-01'
+  END_TIME     = str(GG_UNTILYEAR)+'-03-31'      
 
 #%% setup config
-precip_name = 'pcrglobwb_OBS6_ERA-Interim_reanaly_1_day_pr_1999-2016_'+BASIN_NAME+'.nc'
-temp_name  ='pcrglobwb_OBS6_ERA-Interim_reanaly_1_day_tas_1999-2016_'+BASIN_NAME+'.nc'
+PRECIP_NAME = 'pcrglobwb_OBS6_ERA-Interim_reanaly_1_day_pr_1999-2016_'+BASIN_NAME+'.nc'
+TEMP_NAME  ='pcrglobwb_OBS6_ERA-Interim_reanaly_1_day_tas_1999-2016_'+BASIN_NAME+'.nc'
 
 #input and output_dir should be /data/input and /data/output 
 parameter_set.config['globalOptions']['inputDir']       = '/data/input'
 parameter_set.config['globalOptions']['outputDir']      = '/data/output'
-parameter_set.config['globalOptions']['cloneMap']       = join(r'global_05min/cloneMaps',dest_clip)
-parameter_set.config['globalOptions']['startTime']      = startT
-parameter_set.config['globalOptions']['endTime']        = endT
-parameter_set.config['meteoOptions']['precipitationNC'] = join(r'global_05min/meteo',precip_name)
-parameter_set.config['meteoOptions']['temperatureNC']   = join(r'global_05min/meteo',temp_name)
+parameter_set.config['globalOptions']['cloneMap']       = join(r'global_05min/cloneMaps',DEST_CLIP)
+parameter_set.config['globalOptions']['startTime']      = START_TIME
+parameter_set.config['globalOptions']['endTime']        = END_TIME
+parameter_set.config['meteoOptions']['precipitationNC'] = join(r'global_05min/meteo',PRECIP_NAME)
+parameter_set.config['meteoOptions']['temperatureNC']   = join(r'global_05min/meteo',TEMP_NAME)
 parameter_set.config['meteoOptions']['referenceETPotMethod'] = 'Hamon'
 parameter_set.config['meteoOptions']['refETPotFileNC']  = 'None'
 parameter_set.config['routingOptions']['routingMethod']             ='accuTravelTime' #not kinematicWave
@@ -222,28 +223,28 @@ parameter_set.config['meteoOptions']['precipitationVariableName']   = 'pr'
 parameter_set.config['meteoOptions']['temperatureVariableName']     = 'tas'  #temperature at surface
 parameter_set.config['meteoOptions']['referenceEPotVariableName']   ='evspsblpot'
 parameter_set.config['meteoOptions']['temperatureConstant']         = '-273.15' #check if this is necessary
-parameter_set.config['meteoDownscalingOptions']['downscalePrecipitation']='True'
+parameter_set.config['meteoDownscalingOptions']['downscalePrecipitation']='True' 
 
-if adjust_landcov!=False:
-    if adjust_landcov=='GRASSLANDS':
-        frac_prefix = 'grassf'
-    elif adjust_landcov=='PROPORTIONAL':
-        frac_prefix = 'propf'
+if ADJUST_LANDCOVER!=False:
+    if ADJUST_LANDCOVER=='GRASSLANDS':
+        FRAC_PREFIX = 'grassf'
+    elif ADJUST_LANDCOVER=='PROPORTIONAL':
+        FRAC_PREFIX = 'propf'
     else:
-        print('Wrong input adjust_landcov')
+        print('Wrong input ADJUST_LANDCOVER')
     parameter_set.config['landSurfaceOptions']['noLandCoverFractionCorrection']='True'
-    parameter_set.config['forestOptions']['fracVegCover']   ='glaciers_landcov/'+frac_prefix+'_tall.map'
-    parameter_set.config['grasslandOptions']['fracVegCover']='glaciers_landcov/'+frac_prefix+'_short.map'
-    parameter_set.config['irrPaddyOptions']['fracVegCover'] ='glaciers_landcov/'+frac_prefix+'_pad.map'
-    parameter_set.config['irrNonPaddyOptions']['fracVegCover']='glaciers_landcov/'+frac_prefix+'_nonpad.map'
-elif adjust_landcov==False:
+    parameter_set.config['forestOptions']['fracVegCover']   ='glaciers_landcov/'+FRAC_PREFIX+'_tall.map'
+    parameter_set.config['grasslandOptions']['fracVegCover']='glaciers_landcov/'+FRAC_PREFIX+'_short.map'
+    parameter_set.config['irrPaddyOptions']['fracVegCover'] ='glaciers_landcov/'+FRAC_PREFIX+'_pad.map'
+    parameter_set.config['irrNonPaddyOptions']['fracVegCover']='glaciers_landcov/'+FRAC_PREFIX+'_nonpad.map'
+elif ADJUST_LANDCOVER==False:
     parameter_set.config['landSurfaceOptions']['noLandCoverFractionCorrection']='False'
     parameter_set.config['forestOptions']['fracVegCover']   ='global_05min/landSurface/landCover/naturalTall/vegf_tall.map'
     parameter_set.config['grasslandOptions']['fracVegCover']='global_05min/landSurface/landCover/naturalShort/vegf_short.map'
     parameter_set.config['irrPaddyOptions']['fracVegCover'] ='global_05min/landSurface/landCover/irrPaddy/fractionPaddy.map'
     parameter_set.config['irrNonPaddyOptions']['fracVegCover']='global_05min/landSurface/landCover/irrNonPaddy/fractionNonPaddy.map'
 else:
-    print('Wrong input adjust_landcov')
+    print('Wrong input ADJUST_LANDCOVER')
 
 parameter_set.save_config(glob_ini_new)
 
@@ -259,10 +260,10 @@ if SPINUP==True:
 #%% Call docker and initiliaze model
 time.sleep(5)
 if TEST_RUN==True:
-    ti='test'+BASIN_NAME+str(time.clock())
+    SUFFIX='test'+BASIN_NAME+str(time.clock())
 else:
-    ti='_'+run_name
-output_dir1  =join(RUN_DIR,'output_maps','output'+ti)
+    SUFFIX='_'+RUN_NAME
+OUT_DIR  =join(RUN_DIR,'output_maps','output'+SUFFIX)
 
 
 print('call docker')
@@ -270,54 +271,54 @@ if CLUSTER == True:
     from grpc4bmi.bmi_client_singularity import BmiClientSingularity
     pcrg = BmiClientSingularity(image='ewatercycle-pcrg-grpc4bmi.sif', 
                             input_dir=RUN_DIR, 
-                          output_dir=output_dir1)
+                          output_dir=OUT_DIR)
 else: 
     from grpc4bmi.bmi_client_docker import BmiClientDocker
     pcrg = BmiClientDocker(image='ewatercycle/pcrg-grpc4bmi:setters', image_port=55555, 
                     input_dir=RUN_DIR, 
-                    output_dir=output_dir1) 
+                    output_dir=OUT_DIR) 
     
     
 
 print('input: '+pcrg.input_dir)
 print('output: '+pcrg.output_dir)
 # initialize
-start = time.time()
+start_time = time.time()
 time.sleep(18)
 print ('Initialize...')
 pcrg.initialize(glob_ini_new)
-print (str((time.time()-start )/60)+'minutes of initialize')
+print (str((time.time()-start_time )/60)+'minutes of initialize')
 print ('\a')
 # Usually 3 minutes for the Rhone
 
 
 #%%Set up variables
-tstart  = pcrg.get_start_time()
-tend    = pcrg.get_end_time()
-tstep   = pcrg.get_time_step()
-print('tstart = '+str(day2date(tstart)))
+T_START  = pcrg.get_start_time()
+T_END    = pcrg.get_end_time()
+T_STEP   = pcrg.get_time_step()
+print('T_START = '+str(day2date(T_START)))
 
 #Adust GloGEM timerange if necessary
-if (day2date(tstart)!=nc.time.to_index()[0])&(couple_GG==True):
+if (day2date(T_START)!=nc.time.to_index()[0])&(COUPLE_GLOGEM==True):
     print('Ini-startdate and GloGEM startdate do not match!')
     print('Adjust GloGEM timespan...')
-    nc = nc.sel(time=slice(day2date(tstart),day2date(tend)))
-    if (day2date(tstart)!=nc.time.to_index()[0])&(couple_GG==True):
+    nc = nc.sel(time=slice(day2date(T_START),day2date(T_END)))
+    if (day2date(T_START)!=nc.time.to_index()[0])&(COUPLE_GLOGEM==True):
       print('Ini_startdate and GloGEM still do not match!')
       sys.exit()
 
 #
-latsize,lonsize = pcrg.get_grid_shape(1)
-if (latsize!=nc.dims['lat']) or lonsize!=nc.dims['lon']:
+LATSIZE,LONSIZE = pcrg.get_grid_shape(1)
+if (LATSIZE!=nc.dims['lat']) or LONSIZE!=nc.dims['lon']:
     print ('Shapes GloGEM & PCRG do not match !')
-    print('PCRG lat,lon dimensions: '+str(latsize)+' , '+str(lonsize))
+    print('PCRG lat,lon dimensions: '+str(LATSIZE)+' , '+str(LONSIZE))
     print('GloGEM lat,lon dimensions: '+str(nc.dims['lat'])+ ' , '+str(nc.dims['lon']))
     if BASIN_NAME =='AMAZON':
       print('AMAZON is an exception, reduce GloGEM file')
       nc = nc.where(nc.lat<6,drop=True)
       isglac =np.any(nc.R>0,axis=0) 
-      nlat -= 1
-      if (latsize!=nc.dims['lat']) or lonsize!=nc.dims['lon']:
+      N_NLAT -= 1
+      if (LATSIZE!=nc.dims['lat']) or LONSIZE!=nc.dims['lon']:
         print('Dimensions still not right, exit')
         sys.exit()
     else:
@@ -325,27 +326,27 @@ if (latsize!=nc.dims['lat']) or lonsize!=nc.dims['lon']:
       
       
 #Nodes are middle of gridcells 
-lon_nodes       = pcrg.get_grid_y(1)
-lat_nodes       = pcrg.get_grid_x(1)
+LON_NODES       = pcrg.get_grid_y(1)
+LAT_NODES       = pcrg.get_grid_x(1)
 
 # Get hydrograph
-# hg_lonlat       = nc.hg.station_coords #Beaucaire
-hg_lonlat       = nc.station_coords1
-hg_idx          =  (find_nearest(lat_nodes,hg_lonlat[1]),
-                      find_nearest(lon_nodes,hg_lonlat[0]))
+# HG_LONLAT       = nc.hg.station_coords #Beaucaire
+HG_LONLAT       = nc.station_coords1
+HG_IDX          =  (find_nearest(LAT_NODES,HG_LONLAT[1]),
+                      find_nearest(LON_NODES,HG_LONLAT[0]))
 
 
 if BASIN_NAME =='THJORSA': #Thjorsa needs to be fixed manually
-    hg_idx = (9,18)
-hg_idx_flat   = np.ravel_multi_index(hg_idx,(latsize,lonsize))
-print('hg_idx='+str(hg_idx))
+    HG_IDX = (9,18)
+HG_IDX_flat   = np.ravel_multi_index(HG_IDX,(LATSIZE,LONSIZE))
+print('HG_IDX='+str(HG_IDX))
 
 Q_station1      = []
 # if station2==True:
-#     hg_lonlat2       = nc.station_coords2
-#     hg_idx2          =  (find_nearest(lat_nodes,hg_lonlat2[1]),
-#                           find_nearest(lon_nodes,hg_lonlat2[0]))
-#     hg_idx_flat2     = np.ravel_multi_index(hg_idx2,(latsize,lonsize))
+#     HG_LONLAT2       = nc.station_coords2
+#     HG_IDX2          =  (find_nearest(LAT_NODES,HG_LONLAT2[1]),
+#                           find_nearest(LON_NODES,HG_LONLAT2[0]))
+#     HG_IDX_flat2     = np.ravel_multi_index(HG_IDX2,(LATSIZE,LONSIZE))
     
 #     Q_station2     = []
 Q_date          = []
@@ -357,26 +358,26 @@ SWE = []
 
 #%% Start Run
 i=0
-start = time.time()
+start_time = time.time()
 while pcrg.get_current_time()!=pcrg.get_end_time(): #Testrun=True gives another end condition
     full_loop_timer = time.time()
-    if couple_GG:
+    if COUPLE_GLOGEM:
         #Coupling is done by adding the glogem runoff to the channel_storage
-        chanstor    = pcrg.get_value('channel_storage') #Gives flat array
-        chanstor    = np.reshape(chanstor,(latsize,lonsize))
+        chan_stor    = pcrg.get_value('channel_storage') #Gives flat array
+        chan_stor    = np.reshape(chan_stor,(LATSIZE,LONSIZE))
         
-        # chanstor[isglac]=nc.R.isel(time=i).data[isglac]
+        # chan_stor[isglac]=nc.R.isel(time=i).data[isglac]
         
         if nc.lat.data[0]>nc.lat.data[-1]: #(if Southern Hemisphere)
-            chanstor  += nc.R.data[i,::-1,:]
+            chan_stor  += nc.R.data[i,::-1,:]
         else:
-            chanstor    += nc.R.data[i,:,:]
+            chan_stor    += nc.R.data[i,:,:]
             
-        chanstor    = chanstor.flatten()
+        chan_stor    = chan_stor.flatten()
         
         
         ####
-        pcrg.set_value('channel_storage',chanstor)
+        pcrg.set_value('channel_storage',chan_stor)
         ####
         
         
@@ -396,21 +397,21 @@ while pcrg.get_current_time()!=pcrg.get_end_time(): #Testrun=True gives another 
     if BASIN_NAME in ['GLOMA', 'KALIXAELVEN' ,'NASS', 'SANTA_CRUZ' ,'SKAGIT', 'STIKINE', 'THJORSA','IRRAWADDY','YUKON','OB','SUSITNA']:
         #In these basins the station-pixel does not correspond to the river pixels
         #So the maximum discharge around the station-pixel is searched and assumed to be river
-        discharge_reshaped =np.reshape(pcrg.get_value('discharge'),(nlat,nlon))
-        localmax = np.nanmax(discharge_reshaped[hg_idx[0]-1:hg_idx[0]+2,
-                                         hg_idx[1]-1:hg_idx[1]+2])
+        discharge_reshaped =np.reshape(pcrg.get_value('discharge'),(N_NLAT,N_LON))
+        localmax = np.nanmax(discharge_reshaped[HG_IDX[0]-1:HG_IDX[0]+2,
+                                         HG_IDX[1]-1:HG_IDX[1]+2])
                                          
         Q_station1.append(localmax)
-        # Q_station1.append(pcrg.get_value_at_indices('discharge', hg_idx_flat)[0])
+        # Q_station1.append(pcrg.get_value_at_indices('discharge', HG_IDX_flat)[0])
         # if station2==True:
-        #     localmax2 = np.nanmax(discharge_reshaped[hg_idx2[0]-1:hg_idx2[0]+2,
-        #                                  hg_idx2[1]-1:hg_idx2[1]+2])
-        #     Q_station2.append(pcrg.get_value_at_indices('discharge',hg_idx_flat2)[0])
+        #     localmax2 = np.nanmax(discharge_reshaped[HG_IDX2[0]-1:HG_IDX2[0]+2,
+        #                                  HG_IDX2[1]-1:HG_IDX2[1]+2])
+        #     Q_station2.append(pcrg.get_value_at_indices('discharge',HG_IDX_flat2)[0])
    
     else:
-        Q_station1.append(pcrg.get_value_at_indices('discharge', hg_idx_flat)[0])
+        Q_station1.append(pcrg.get_value_at_indices('discharge', HG_IDX_flat)[0])
         # if station2==True:
-        #     Q_station2.append(pcrg.get_value_at_indices('discharge', hg_idx_flat2)[0])
+        #     Q_station2.append(pcrg.get_value_at_indices('discharge', HG_IDX_flat2)[0])
     Q_date.append(day2date(pcrg.get_current_time()))
     # snowsum.append(np.sum(pcrg.get_value_at_indices('snow_melt',np.flatnonzero)))
     
@@ -418,7 +419,7 @@ while pcrg.get_current_time()!=pcrg.get_end_time(): #Testrun=True gives another 
     #Variables: 'snow_water_equivalent', 'snow_melt'    
     # for var in variables:
     #     vals    = pcrg.get_value(var) #Gives flat array
-    #     vals   =np.reshape(vals,(latsize,lonsize))
+    #     vals   =np.reshape(vals,(LATSIZE,LONSIZE))
     #     if nc.lat.data[0]>nc.lat.data[-1]:
     #         vals    *= nc.isglac.data[::-1,:]
     #     else:
@@ -438,9 +439,9 @@ while pcrg.get_current_time()!=pcrg.get_end_time(): #Testrun=True gives another 
     # unit = pcrg.get_var_units(variable)
 
     # missval = -999.
-    # Z = np.reshape(ma.masked_where(vals == np.nan, vals), (latsize,lonsize))
-    # ax1.set_title(ti+'\n'+variable + '[' + unit + '], t='+str(day2date(pcrg.get_current_time())))
-    # im = ax1.pcolormesh(lon_nodes,lat_nodes,Z)            
+    # Z = np.reshape(ma.masked_where(vals == np.nan, vals), (LATSIZE,LONSIZE))
+    # ax1.set_title(SUFFIX+'\n'+variable + '[' + unit + '], t='+str(day2date(pcrg.get_current_time())))
+    # im = ax1.pcolormesh(LON_NODES,LAT_NODES,Z)            
     # cbar = plt.colorbar(im,ax=ax1)
     # cbar.set_label('Discharge [m3/s]')
     
@@ -452,7 +453,7 @@ while pcrg.get_current_time()!=pcrg.get_end_time(): #Testrun=True gives another 
     
     
     
-print(str((time.time()-start )/60)+'minutes of run') 
+print(str((time.time()-start_time )/60)+'minutes of run') 
 print('Maximum daily discharge: '+str(round(np.max(Q_station1),2)))
 #
 #f2,ax2=plt.subplots()
@@ -465,14 +466,14 @@ print('Maximum daily discharge: '+str(round(np.max(Q_station1),2)))
 
  #SAve hydrographs to csv
 if (TEST_RUN==False):
-    hg_name     = run_name+'_hg1.txt' # 
+    hg_name     = RUN_NAME+'_hg.txt' # 
     hg_dir      = join(RUN_DIR,'Hydrographs',hg_name)
     hg_time     = pd.date_range(day2date(pcrg.get_start_time()),day2date(pcrg.get_current_time()))
     hg_df       = pd.DataFrame(Q_station1,index=hg_time,columns = ['hg'])
     hg_df.index.name = 'time'
     hg_df.to_csv(hg_dir)
     # if station2==True: #If no second station is given don't plot the second hg
-    #     hg_name     = run_name+'_hg2.txt'
+    #     hg_name     = RUN_NAME+'_hg2.txt'
     #     hg_dir      = join(RUN_DIR,'Hydrographs',hg_name)
     #     hg_time     = pd.date_range(day2date(pcrg.get_start_time()),day2date(pcrg.get_current_time()))
     #     hg_df       = pd.DataFrame(Q_station2,index=hg_time,columns = ['hg'])
