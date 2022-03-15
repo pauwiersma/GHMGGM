@@ -129,14 +129,14 @@ basin_info = pd.read_csv(join(
 
 ### 25 basins used in the paper
 # BASIN_NAMES = ['RHONE']
-# BASIN_NAMES = basin_info[basin_info['suitable']=='y'].index
+BASIN_NAMES = basin_info[basin_info['suitable']=='y'].index
 # BASIN_NAMES = ['AMAZON','IRRAWADDY','MACKENZIE',
 #                 'OB','YUKON','ALSEK', 'CLUTHA', 'COLUMBIA', 'COPPER', 'DANUBE', 'DRAMSELV',
 #         'FRASER', 'GLOMA',  
 #         'KUSKOKWIM', 'NASS', 'NEGRO', 'OELFUSA',
 #         'RHINE', 'RHONE',  'SKAGIT', 'SKEENA', 'STIKINE','SUSITNA',
 #         'TAKU', 'THJORSA'] #minus Indus, Kalixaelven, Nelson, Joekulsa, Santa Cruz, Lule
-BASIN_NAMES = ['ALSEK','COLUMBIA','RHONE','OELFUSA','MACKENZIE','RHINE']
+# BASIN_NAMES = ['ALSEK','COLUMBIA','RHONE','OELFUSA','MACKENZIE','RHINE']
 ### Basins with routing problems
 # BASIN_NAMES = ['JOEKULSA','NELSON','SANTA_CRUZ','LULE','KALIXAELVEN]
 ###Large Basins
@@ -152,7 +152,7 @@ MODEL_NAMES         ={'0':'Modelled (Benchmark)',
 
 MAIN_PLOT           =['s0','s1','s2'] #Which model settings to plot
 ONLY_OBSYEARS       =True  #Consider only years for which GRDC is available
-PLOT_BOOL           = True
+PLOT_BOOL           = False
 SAVE_FIGS           = False
 CALENDAR_DAY        =False #Calculate Caldendar day bencmark (Schaefli&Gupta2007) 
 
@@ -165,7 +165,7 @@ Untilyear           =2012
 OF_list = []
 normdiflist=[]
 FD_list = []
-NRD_list     = []
+RRD_list     = []
 MBE_list = []
 HG_list = []
 glacier_sum_list =[]
@@ -292,23 +292,23 @@ for Basin_name in BASIN_NAMES:
         DF.columns =  ['s0','s1','s2']
         DF['Obs'] = Qobs
         
-        NRD = DF.groupby([DF.index.year,DF.index.month]).apply(
+        RRD = DF.groupby([DF.index.year,DF.index.month]).apply(
             lambda df,s0,s1,s2,obs:
                 (RMSE(df[s0],df[obs])-RMSE(df[s2],df[obs]))/
                 np.where(df[s2].sum()>df[s0].sum(),RMSE(df[s2],df[s1]),RMSE(df[s0],df[s1])),
                     's0','s1','s2','Obs')
             
-        NRD.index = [pd.datetime.datetime(*NRD.index[i],1) for i in np.arange(len(NRD))]
-        #Fix NRD-values that are just above 1 or below -1
-        NRD[NRD>1] = 1 
-        NRD[NRD<-1]=-1
+        RRD.index = [pd.datetime.datetime(*RRD.index[i],1) for i in np.arange(len(RRD))]
+        #Fix RRD-values that are just above 1 or below -1
+        RRD[RRD>1] = 1 
+        RRD[RRD<-1]=-1
         
         #Mask all months that have on average less than 1 percent of annual glacier runoff
         glacsumDF = glacier_sum.to_dataframe()['R']
         pctmask = (glacsumDF.groupby([glacsumDF.index.month]).sum()/glacsumDF.sum())>0.01
-        mask = [pctmask.loc[NRD.index[i].month] for i in range(len(NRD))]
-        NRD=NRD.where(mask,np.nan)
-        NRD_list.append(pd.DataFrame({Basin_name:NRD}))
+        mask = [pctmask.loc[RRD.index[i].month] for i in range(len(RRD))]
+        RRD=RRD.where(mask,np.nan)
+        RRD_list.append(pd.DataFrame({Basin_name:RRD}))
     
     if ('s0' in hg.keys())&('s2' in hg.keys()):
         FD_bm = FD_curve(hg['s0'].hg)
@@ -330,13 +330,13 @@ for Basin_name in BASIN_NAMES:
         max_frac  = glac_frac.max() #.max() or .quantile()
         OF['GFmax'] = max_frac
         OF['GF99']  = glac_frac.quantile(0.99)
-        OF['fQ95'] = glac_frac_obs.quantile(0.95)
-        OF['fQ90'] = glac_frac_obs.quantile(0.90)
+        # OF['fQ95'] = glac_frac_obs.quantile(0.95)
+        # OF['fQ90'] = glac_frac_obs.quantile(0.90)
         OF['GFmean'] = glac_frac.mean()
         
         # basin_info.fQ99[Basin_name] = OF['fQ99']
         # basin_info.GF99[Basin_name] = OF['GF99']
-        basin_info.loc[Basin_name,'fQ90'] = OF['fQ90']
+        # basin_info.loc[Basin_name,'fQ90'] = OF['fQ90']
         basin_info.loc[Basin_name,'GF99'] = OF['GF99']
 
     OF_list.append(pd.DataFrame(OF,index=[Basin_name]))
@@ -449,7 +449,7 @@ for Basin_name in BASIN_NAMES:
         #                     color=['tab:orange','tab:red','tab:green','tab:blue'],
         #                     legend=False)
         #     ax2=ax.twinx()
-        #     NRD[months].plot(ax=ax2,color='black')
+        #     RRD[months].plot(ax=ax2,color='black')
         #     Qnormdif[months].plot(ax=ax2,color='grey')
         #     ax.grid()
         #     ax2.axhline(0,color='black',linestyle='--')
@@ -522,14 +522,14 @@ ratio_monthly = (ratio_monthly -1)*100
 ratio_monthly.to_csv(join(RUN_DIR,'Output','ratio_'+str(len(OF_list))+'.csv'))
 
 ###RRD
-NRD_concat = pd.concat(NRD_list,axis=1)
+RRD_concat = pd.concat(RRD_list,axis=1)
 #Shift Southern hemisphere  months 
 for b in ['NEGRO','SANTA_CRUZ','AMAZON','CLUTHA']:
-    if b in NRD_concat.keys():
-        NRD_concat[b] = NRD_concat[b].shift(periods=6,freq='MS')
+    if b in RRD_concat.keys():
+        RRD_concat[b] = RRD_concat[b].shift(periods=6,freq='MS')
     
-NRD_means = NRD_concat.groupby([NRD_concat.index.month]).mean()
-NRD_means.to_csv(join(RUN_DIR,'Output','RRD_means.csv'))
+RRD_means = RRD_concat.groupby([RRD_concat.index.month]).mean()
+RRD_means.to_csv(join(RUN_DIR,'Output','RRD_means.csv'))
 
 
 

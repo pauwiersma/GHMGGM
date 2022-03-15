@@ -75,7 +75,7 @@ basin_info = pd.read_csv(join(
 #         'KUSKOKWIM', 'NASS', 'NEGRO', 'OELFUSA',
 #         'RHINE', 'RHONE',  'SKAGIT', 'SKEENA', 'STIKINE','SUSITNA',
 #         'TAKU', 'THJORSA'] #minus Indus, Kalixaelven, Nelson, Joekulsa, Santa Cruz, Lule
-BASIN_NAMES = ['ALSEK','COLUMBIA','RHONE','OELFUSA','MACKENZIE','RHINE']
+# BASIN_NAMES = ['ALSEK','COLUMBIA','RHONE','OELFUSA','MACKENZIE','RHINE']
 ### Basins with routing problems
 # BASIN_NAMES = ['JOEKULSA','NELSON','SANTA_CRUZ','LULE','KALIXAELVEN]
 ###Large Basins
@@ -95,7 +95,7 @@ PLOT_BOOL           = True
 SAVE_FIGS           = False
 CALENDAR_DAY        =False #Calculate Caldendar day bencmark (Schaefli&Gupta2007) 
 
-NO_OF_BASINS      = 6
+NO_OF_BASINS      = 25
 
 GHM_NAME          ='PCRG'
 GG_GCM              ='HadGEM2-ES'
@@ -111,12 +111,12 @@ ratio_monthly= pd.read_csv(join(RUN_DIR,'Output','ratio_'+str(NO_OF_BASINS)+'.cs
 normdif_means = pd.read_csv(join(RUN_DIR,'Output','ND_'+str(NO_OF_BASINS)+'.csv'),index_col=0)
 
 
-NRD_means = pd.read_csv(join(RUN_DIR,'Output','RRD_means.csv'),index_col=0).transpose()
+RRD_means = pd.read_csv(join(RUN_DIR,'Output','RRD_means.csv'),index_col=0).transpose()
 
 
 
 #%% Benchmark efficiency plots
-OF_sorted.index = [OF_sorted.index[i].title() for i in range(len(OF_sorted.index))]
+OF_sorted_title_index = [OF_sorted.index[i].title() for i in range(len(OF_sorted.index))]
 
 f1,ax=plt.subplots(1,3,figsize=(10,10),sharey=True)
 f1.subplots_adjust(wspace=0.02)    
@@ -124,7 +124,7 @@ OF_sorted['TFBE'] = 1-(OF_sorted['MB2']/OF_sorted['MB0'])
 
 OFS = ['BE','FDBE','TFBE']
 for i in range(3):
-    ax[i].plot(OF_sorted[OFS[i]],OF_sorted.index,marker='o',
+    ax[i].plot(OF_sorted[OFS[i]],OF_sorted_title_index,marker='o',
              linestyle='None',color='orange',markeredgecolor='black')
     plt.xticks(rotation='horizontal')
     ax[i].axvline(0,color='black',linestyle='--')
@@ -152,7 +152,7 @@ im = ax2.imshow(np.array([[0,1]]),cmap=cmap)
 bar =plt.colorbar(im,fraction=0.02,label=r'$P_{99}$'+' glacier contribution [-]')
 # f1.savefig(join(FIG_DIR,'Overallmetrics_99.svg'),format = 'svg',bbox_inches = 'tight')
 # im = ax1.imshow(zz,cmap=palette,aspect='auto',vmin=0,vmax=1,
-#                 extent = (*ax1.get_xlim(),len(NRD)-0.5,-0.5))
+#                 extent = (*ax1.get_xlim(),len(RRD)-0.5,-0.5))
 
 #%%Independent GHM evaluation
 if CALENDAR_DAY==True:
@@ -244,22 +244,21 @@ if SAVE_FIGS==True:
 
 
 #%%
-# OF27_path = join(RUN_DIR,'Output','OF_BE25.csv')
-# OF27 = pd.read_csv(OF27_path,index_col=0)
-NRD=NRD_means
-NRD['GF99']=OF_sorted['GF99']
-NRD = NRD.sort_values(by='GF99',ascending=False)
-NRD.index = [NRD.index[i].title() for i in range(len(NRD.index))]
 
 
 
 #%%RRD-plots
 # With cax and R2
 
+RRD=RRD_means
+RRD['GF99']=OF_sorted.sort_values(by='GF99',ascending=True)['GF99']
+RRD = RRD.sort_values(by='GF99',ascending=False)
+RRD.index = [RRD.index[i].title() for i in range(len(RRD.index))]
+
 rscores = []
 for i in range(5,10):
-    a,b,r,p,std = stats.linregress(x=NRD[i].values,
-                                    y=NRD['GF99'].values)
+    a,b,r,p,std = stats.linregress(x=RRD[i].values,
+                                    y=RRD['GF99'].values)
     rscores.append(r**2)
     
     
@@ -268,7 +267,7 @@ colors = ['tab:cyan','tab:orange','tab:green','tab:red','tab:purple']
 f1,ax1 = plt.subplots(figsize=(6,10))
 alpha = [1,1,1,1,1]
 for month in range(5,10):
-    ax1.plot(NRD[month],NRD.index,color=colors[month-5],
+    ax1.plot(RRD[month],RRD.index,color=colors[month-5],
               linestyle='-.',marker=markers[month-5],
               label=monthcombis[month-1]+'\n'+r'$R^2$ = '+str(round(rscores[month-5],2))+'\n',
               markeredgecolor='black',markeredgewidth=0.5,markersize=7,
@@ -280,12 +279,12 @@ ax1.set_xlim(right=1,left=-1)
 ax1.set_xlabel('RRD [-]')
 plt.legend(loc = (1.01,0))
 xmax = 1
-zz  = np.array([NRD['GF99'].values]).transpose()
+zz  = np.array([RRD['GF99'].values]).transpose()
 palette = plt.cm.Blues
 import matplotlib.colors
 norm = matplotlib.colors.Normalize(vmin=0, vmax=1)
 im = ax1.imshow(zz,cmap=palette,aspect='auto',vmin=0,vmax=1,
-                extent = (*ax1.get_xlim(),len(NRD)-0.5,-0.5))
+                extent = (*ax1.get_xlim(),len(RRD)-0.5,-0.5))
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 axins = inset_axes(ax1,
                    width="5%",  # width = 5% of parent_bbox width
@@ -350,6 +349,8 @@ ax1.axhline(0,color='k',linestyle='--')
 # monthcombis = ['January','February','March','April','May','June','July','August','September','October','November','December']
 
 # plt.xticks(xticks[:-1],monthcombis,rotation = 45)
+plt.xticks(np.linspace(0,365,13),monthcombis,rotation=30)
+
 
 ax1.grid()
 ax1.set_xlim(normdif_means.index[0],normdif_means.index[-1])
@@ -359,8 +360,8 @@ ax1.text(340,0.85,'a)',size=15)
 # xtickss = np.append(xtickss,xtickss[-1]+30)
 summer ={}
 for Basin_name in OF_sorted_ascending.index:
-    ratio= np.append(ratio_monthly[Basin_name.upper()].values,ratio_monthly.values[0])
-    ax2.plot(ratio_monthly,alpha=1)
+    ratio= np.append(ratio_monthly[Basin_name].values,ratio_monthly[Basin_name].values[0])
+    ax2.plot(np.linspace(0,365,13)[:13],ratio,alpha=1)
     summer[Basin_name]=(np.mean(ratio_monthly[6:8]))
 ax2.axhline(1,linestyle='--',color='black')
 # plt.xticks(np.linspace(0,365,13),monthcombis,rotation=30)

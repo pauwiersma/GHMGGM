@@ -109,8 +109,8 @@ PLOT_BASIN          =False
 
 FIND_ISOUT_ISGLAC   =False #True=Create, False = Load
 FIND_QM             =False #True=Create, False = Load
-FIND_QD             =False #True=Create, False = Load
-ERA_RESAMPLE        =False #True= T-based weight resampling, False= Equal weight resampling
+FIND_QD             =True #True=Create, False = Load
+ERA_RESAMPLE        =True #True= T-based weight resampling, False= Equal weight resampling
 SPILLING_PREVENTION =False #False=skip this step
 INCLUDE_SP_AUX      =True #True=include spilling prevention aux data to nc-file: isout,isglac,glacfrac
 INCLUDE_HG          =True #True= include GRDC observations in nc-file
@@ -126,8 +126,10 @@ T_THRESHOLD         =268.15 #Daily mean T threshold above which weight is given 
 
 #Load basin_info.csv with all basin info
 basin_info = pd.read_csv(join(files,'GHMGGM_basin_info.csv'),index_col = 0)
-# basin_names = basin_info[basin_info['suitable']=='y'].index
-basin_names = ['RHONE','ALSEK']
+basin_names = basin_info[basin_info['suitable']=='y'].index
+# basin_names = ['RHONE','ALSEK']
+# basin_names = ['AMAZON']
+basin_names = ['OB']
 
 
 #%% Create dictionary for each basin in loop
@@ -170,7 +172,7 @@ for B in basin_names:
     elif B =='INDUS':
         p['Tarbela']  = join(files,'Q_obs','Tarbela2015_2016.csv')
     else:
-        GRDC_no         = str(int(Basins[B]['grdc_no1']))
+        GRDC_no         = str(int(Basins[B]['grdc_no']))
         p['GRDC']=glob.glob(join(files,'Q_obs',GRDC_no+'*.txt'))
     Basins[B]['p']=p
 
@@ -533,6 +535,9 @@ def rasterize(vector,var_key,merge_algorithm='replace'):
     latflip = 1-2*(llc_lat<0)
     vector.geometry = vector.geometry.affine_transform([1,0,0,latflip,lon360,0])
     res = 0.0833333
+    # print(B, vector.R.sum())
+    # print(lon360)
+    # print(latflip)
     
     #rasterio.enums.MergeAlg algorithms, default is replace
     if merge_algorithm == 'add':
@@ -552,6 +557,11 @@ def rasterize(vector,var_key,merge_algorithm='replace'):
     geo_grid['y'] = geo_grid['y']*latflip
     geo_grid= geo_grid.rename({'y':'lat','x':'lon'})
     geo_grid = geo_grid.where(~xr.ufuncs.isnan(geo_grid),0,drop=False)
+    
+    # pointsum  = vector.R.sum()
+    # rastersum = np.float(geo_grid.R.sum().data)
+    # print(rastersum/pointsum)
+    
     return geo_grid
 
 
@@ -570,6 +580,8 @@ if FIND_ISOUT_ISGLAC:
     
         print (B+' isout & isglac')
         basin_geo = Basins[B]['subshp'].geometry[0]
+        if B in ['YUKON','MACKENZIE','OB']:
+            basin_geo = basin_geo.buffer(0.000001)
         # basin_geo = basin_geo.buffer(-0.001)
         
         #append all grid cells with glaciers in it
