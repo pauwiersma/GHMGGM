@@ -15,9 +15,7 @@ import matplotlib.ticker
 from matplotlib import cm
 
 """
-Created on Sun Feb  7 11:52:06 2021
 
-@author: Internet
 """
 run_dir   = r'D:\Documents\Master Vakken\Thesis\Code'
 os.chdir(run_dir)
@@ -25,12 +23,29 @@ files               = join(run_dir,'Code','Files')
 #%%
 
 """
-- HH2018 annual mass balance
-- daily SWE raster
+@author: Pau Wiersma
+
+This script
+    Calculates the annual runoff difference between the coupled model and the benchmark
+    and the contribution of
+        Snow towers
+        Glacier mass loss 
+        Spilling prevention
+    to this annual runoff difference
+    for the basins Alsek, Columbia, Oelfusa and Rhone
+
+Files needed
+-HH2018 annual mass balance
+-Subbasin shapefile 
+-HH2018 Overview.dat
+-daily SWE raster
     -take annual mass balance from glacfrac
     - Compare timing of snowmelt bewteen N0 and N2
-- HG
+- Hydrographs
     - Take difference between hg0 and hg2 and see what percentage the mass balances take in it
+-Cellsize raster
+-Glacier fraction (isglac) from nc file
+-GHMGGM_basin_info.csv
 
 """
 #%% INPUTS
@@ -39,7 +54,7 @@ figures             =join(run_dir,'Figures')
 daily_outputs       =join(run_dir,'Output','daily_outputs')
 HH_MB               = join(files,'HH2018_validation')
 
-basin_info = pd.read_csv(join(files,'basin_info_45min.csv'),index_col = 0)
+basin_info = pd.read_csv(join(files,'GHMGGM_basin_info.csv'),index_col = 0)
 # Basin_names = basin_info[basin_info['suitable']=='y'].index
 
 
@@ -171,7 +186,7 @@ for Basin_name in Basin_names:
         # Quantify percentage of spillingg prevention
         hg2_yearsum = hg['s2'][rng[0]:rng[1]].hg.sum()*3600*24
         spilling_yearsum = spdiff[rng[0]:rng[1]].hg.sum()
-        print (Basin_name,spilling_yearsum/hg2_yearsum)
+        print (Basin_name,year,'(spilling prevention)/(total runoff difference) =',spilling_yearsum/hg2_yearsum)
 
     hg_yearsum = np.array(hg_yearsum)
     hg_diff_list.append(hg_yearsum)
@@ -227,14 +242,11 @@ for i,B in enumerate(Basin_names):
     ax.grid(alpha=0.6)
     if i==0:
         ax.legend(loc = (0.68,1.02))
-        # handles, labels = ax.get_legend_handles_labels()
-        # ax.legend(handles[::-1], labels[::-1], loc=(0.68,1.02))
     ax.set_title(B.title())
-    # ax.set_ylabel(r'$Mass\ imbalance\ (m^{3})$')
     ax.set_xlim(SWE_diff.index[0],SWE_diff.index[-1])
     ax.set_ylim(bottom=0)
     ax.yaxis.set_major_formatter(OOMFormatter(9,"%1.i"))
-f1.text(0.08, 0.5, r'$Mass\ imbalance\ [m^{3}]$', va='center', rotation='vertical',
+f1.text(0.08, 0.5, r'$Runoff\ difference\ [m^{3}/year]$', va='center', rotation='vertical',
         size='large')
-# f1.savefig(join(figures,'MB_diffs_all_colorblind.svg'),format='svg',bbox_inches='tight')
+f1.savefig(join(figures,'MB_diffs_all_colorblind_runoffdifference_m3year.svg'),format='svg',bbox_inches='tight')
 

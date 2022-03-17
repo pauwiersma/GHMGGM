@@ -92,7 +92,7 @@ MODEL_NAMES         ={'0':'Modelled (Benchmark)',
 MAIN_PLOT           =['s0','s1','s2'] #Which model settings to plot
 ONLY_OBSYEARS       =True  #Consider only years for which GRDC is available
 PLOT_BOOL           = True
-SAVE_FIGS           = False
+SAVE_FIGS           = True
 CALENDAR_DAY        =False #Calculate Caldendar day bencmark (Schaefli&Gupta2007) 
 
 NO_OF_BASINS      = 25
@@ -149,8 +149,8 @@ for i in range(3):
 ax2 = f1.add_axes([0,0,0.95,1])
 ax2.set_visible(False)
 im = ax2.imshow(np.array([[0,1]]),cmap=cmap)
-bar =plt.colorbar(im,fraction=0.02,label=r'$P_{99}$'+' glacier contribution [-]')
-# f1.savefig(join(FIG_DIR,'Overallmetrics_99.svg'),format = 'svg',bbox_inches = 'tight')
+bar =plt.colorbar(im,fraction=0.02,label=r'GRC99 [-]')
+f1.savefig(join(FIG_DIR,'Overallmetrics_99_GRC99.svg'),format = 'svg',bbox_inches = 'tight')
 # im = ax1.imshow(zz,cmap=palette,aspect='auto',vmin=0,vmax=1,
 #                 extent = (*ax1.get_xlim(),len(RRD)-0.5,-0.5))
 
@@ -191,8 +191,8 @@ if CALENDAR_DAY==True:
     ax2 = f1.add_axes([0.03,0.0,0.95,1])
     ax2.set_visible(False)
     im = ax2.imshow(np.array([[0,1]]),cmap=cmap)
-    bar =plt.colorbar(im,fraction=0.03,label=r'$Q_{99}$'+' glacier contribution [-]')
-    # f1.savefig(join(FIG_DIR,'NSE0_BBE0.svg'),format='svg',bbox_inches = 'tight')
+    bar =plt.colorbar(im,fraction=0.03,label=r'GRC99 [-]')
+    f1.savefig(join(FIG_DIR,'NSE0_BBE0_GRC99.svg'),format='svg',bbox_inches = 'tight')
 #%% ND plot for all basins
 
 
@@ -234,13 +234,13 @@ ax1.set_xlim(normdif_means.index[0],normdif_means.index[-1])
 ax2 = f1.add_axes([0,0,0.93,1])
 ax2.set_visible(False)
 im = ax2.imshow(np.array([[vmin,1]]),cmap=cmap)
-bar =plt.colorbar(im,fraction=0.015,label=r'$P_{99}$'+' glacier contribution [-]')
+bar =plt.colorbar(im,fraction=0.015,label=r'GRC99 [-]')
 # bar =plt.colorbar(im,fraction=0.015,label=r'FQ99 [-]')
 ax1.legend(loc='upper left',title='Percentiles')
 
 ax1.set_ylim(-0.8125,0.9957)
 if SAVE_FIGS==True:
-    f1.savefig(join(FIG_DIR,'ND_longnames_percentiles_P99.svg'),format='svg',bbox_inches = 'tight')
+    f1.savefig(join(FIG_DIR,'ND_longnames_percentiles_GRC99.svg'),format='svg',bbox_inches = 'tight')
 
 
 #%%
@@ -295,14 +295,14 @@ axins = inset_axes(ax1,
                     # borderpad=0,
                    )
 cbar = f1.colorbar(im,cax=axins,ticks=np.linspace(0,1,6),fraction=0.04
-                    ,label=r'$P_{99}$'+' glacier contribution [-]')
+                    ,label=r'GRC99 [-]')
 # cbar = f1.colorbar(im,cax=axins,ticks=np.linspace(0,1,6),fraction=0.04
                     # ,label=r'FQ99 [-]')
 
 ax1.axvline(0,linestyle='--',color='black',alpha=0.6)
 
 if SAVE_FIGS==True:
-    f1.savefig(join(FIG_DIR,'RRD_PQ99.svg'),format='svg',bbox_inches = 'tight')
+    f1.savefig(join(FIG_DIR,'RRD_GRC99.svg'),format='svg',bbox_inches = 'tight')
 
 
 
@@ -381,11 +381,11 @@ ax2.text(340,220,'b)',size=15)
 ax3 = f1.add_axes([0,0,0.93,1])
 ax3.set_visible(False)
 im = ax3.imshow(np.array([[vmin,1]]),cmap=cmap)
-bar =plt.colorbar(im,fraction=0.015,label=r'$P_{99}$'+' glacier contribution [-]')
+bar =plt.colorbar(im,fraction=0.015,label=r'GRC99 [-]')
 # bar =plt.colorbar(im,fraction=0.015,label=r'FQ99 [-]')
 
 if SAVE_FIGS==True:
-    f1.savefig(join(FIG_DIR,'ND+ratio_P99_longlabels_percentage.svg'),format='svg',bbox_inches = 'tight')
+    f1.savefig(join(FIG_DIR,'ND+ratio_GRC99_longlabels_percentage.svg'),format='svg',bbox_inches = 'tight')
 
 
 # xlabels=ax1.get_xticklabels()

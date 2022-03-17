@@ -27,6 +27,7 @@ Files needed:
         bas
     GRDC metadata
     GRDC runoff observations
+    Rivers from Yan et al. 2019 (https://doi.org/10.6084/m9.figshare.8044184.v5) 
 
     
 To do:
@@ -109,7 +110,7 @@ PLOT_BASIN          =False
 
 FIND_ISOUT_ISGLAC   =False #True=Create, False = Load
 FIND_QM             =False #True=Create, False = Load
-FIND_QD             =True #True=Create, False = Load
+FIND_QD             =False #True=Create, False = Load
 ERA_RESAMPLE        =True #True= T-based weight resampling, False= Equal weight resampling
 SPILLING_PREVENTION =False #False=skip this step
 INCLUDE_SP_AUX      =True #True=include spilling prevention aux data to nc-file: isout,isglac,glacfrac
@@ -129,7 +130,7 @@ basin_info = pd.read_csv(join(files,'GHMGGM_basin_info.csv'),index_col = 0)
 basin_names = basin_info[basin_info['suitable']=='y'].index
 # basin_names = ['RHONE','ALSEK']
 # basin_names = ['AMAZON']
-basin_names = ['OB']
+# basin_names = ['OB']
 
 
 #%% Create dictionary for each basin in loop
@@ -1017,7 +1018,7 @@ if CREATE_WORLDMAP:
     ax1.set_extent((-120,118,-60,85),crs=ccrs.PlateCarree())
     ax1.coastlines()
     ax1.add_feature(cfeature.LAND,color='green',alpha=0.00)
-    ax1.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
+    # ax1.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
     
     #NEW-ZEALAND subaxes
     ax2 = f1.add_axes(projection=ccrs.PlateCarree(),
@@ -1025,7 +1026,7 @@ if CREATE_WORLDMAP:
     ax2.set_extent((160,180,-60,-30),crs=ccrs.PlateCarree())
     ax2.coastlines()
     ax2.add_feature(cfeature.LAND,color='green',alpha=00)
-    ax2.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
+    # ax2.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
 
     
     #North-America subaxes
@@ -1034,7 +1035,7 @@ if CREATE_WORLDMAP:
     ax3.set_extent((-179,-100,30,85),crs=ccrs.PlateCarree())
     ax3.coastlines()
     ax3.add_feature(cfeature.LAND,color='green',alpha=00)
-    ax3.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
+    # ax3.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
     
     #Iceland subaxes
     ax4 = f1.add_axes(projection=ccrs.PlateCarree(),
@@ -1042,7 +1043,7 @@ if CREATE_WORLDMAP:
     ax4.set_extent((-28,-10,60,70),crs=ccrs.PlateCarree())
     ax4.coastlines()
     ax4.add_feature(cfeature.LAND,color='green',alpha=00)
-    ax4.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
+    # ax4.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
 
     #Large
     # arrowxy = {'AMAZON':[-3,-3],
@@ -1116,51 +1117,33 @@ if CREATE_WORLDMAP:
         elif B in ['THJORSA','OELFUSA']:
             ax=ax4
             ax1.add_geometries(Basins[B]['shp'].geometry,
-                    crs=ccrs.PlateCarree(),
-                    facecolor=cmap(norm(Basins[B]['glac_degree'])))
-    # ax1.add_geometries(stack_shapefiles[i].geometry,
-    #                 crs=ccrs.PlateCarree(),
-    #                 alpha=0.5,)
-            ax1.add_geometries(Basins[B]['shp'].geometry,
                                 crs=ccrs.PlateCarree(),
                                 alpha=0.5,
-                                facecolor=cmap(norm(Basins[B]['glac_degree'])),edgecolor='black')
+                                facecolor=cmap(norm(Basins[B]['glacerization_degree'])),edgecolor='black')
         else: ax=ax1
         
         xy = (Basins[B]['center_lon'],Basins[B]['center_lat'])
         # stack_shapefiles[i].plot(ax=ax1,edgecolor='black')
         # ax1.plot(stack_shapefiles[i].geometry)
-        ax.add_geometries(Basins[B]['shp'].geometry,
+        ax.add_geometries(Basins[B]['shp'].geometry.buffer(0.01),
                             crs=ccrs.PlateCarree(),
-                            facecolor=cmap(norm(Basins[B]['glac_degree'])))
-            # ax1.add_geometries(stack_shapefiles[i].geometry,
-            #                 crs=ccrs.PlateCarree(),
-            #                 alpha=0.5,)
-        ax.add_geometries(Basins[B]['shp'].geometry,
+                            facecolor=cmap(norm(Basins[B]['glacerization_degree'])))
+        ax.add_geometries(Basins[B]['shp'].geometry.buffer(0.01),
                             crs=ccrs.PlateCarree(),
-                            alpha=0.5,
-                            facecolor=cmap(norm(Basins[B]['glac_degree'])),edgecolor='black')
+                            alpha=0.5,facecolor=cmap(norm(Basins[B]['glacerization_degree'])),
+                            edgecolor='black')
         ax.annotate(B.title(),xy,
                      xy+np.array(arrowxy[B])*1.3,
                 arrowprops=dict(facecolor='black',
                                 width=0.001,headlength=0.02,
                                 headwidth=0.02,alpha=0.7))
     
-   
-    
-    # ax1.set_title('25 basins with observations')
-    
     ax5 = f1.add_axes([-0.25,0.05,0.3,0.4])
     ax5.set_visible(False)
     im = ax5.imshow(np.array([[VMIN,20]]),cmap=cmap)
     bar =plt.colorbar(im,fraction=0.035,label='Glacierization degree [%]')
     
-    # red_dot = [Line2D([0],[0],marker='o',linestyle='None',
-    #            markerfacecolor='red',markeredgecolor='red',
-    #            markersize=10,label='Glaciers')]
-    # plt.legend(handles = red_dot)
     
-    
-    save_at = join(run_dir,r'Code\Figures\Basin_maps','worldmap25_small.svg')
+    save_at = join(run_dir,r'Figures\Basin_maps','worldmap25_small_whitebackground_buffer.svg')
     plt.savefig(save_at,bbox_inches='tight',format = 'svg')
     plt.show()
