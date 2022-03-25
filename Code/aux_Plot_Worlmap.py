@@ -4,8 +4,15 @@ Created on Thu Nov 11 13:31:16 2021
 
 @author: Pau Wiersma
 
+Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
+Auxiliary: Plotting of the worldmap in the paper (figure 1)
+
 This script loads the basin shapefiles and plots them on a world map 
 with the glacierization degree in blue hue
+
+Files needed: 
+    GHMGGM_basin_info.csv
+    basin_geojsons 
 """
 
 import numpy as np

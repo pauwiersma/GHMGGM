@@ -5,6 +5,9 @@ Created on Mon Oct 12 10:00:50 2020
 
 @author: Pau Wiersma
 
+Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
+(4/5): Objective function plotting to create the figures in the paper
+
 This script:
     Loads the objective functions and plots them
         ND

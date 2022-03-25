@@ -5,6 +5,9 @@ Created on Mon Oct 12 10:00:50 2020
 
 @author: Pau Wiersma
 
+Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
+(3/5): Hydrograph plotting and objective function (OF) calculation
+
 This script:
     Loads the modelled hydrographs and plots them
         Single basin all years
@@ -21,8 +24,9 @@ This script:
             Calendar benchmark efficiency (Schaefli&Gupta2007)
 
 Files needed:
+    GHMGGM_basin_info.csv
     glaciers_nc files (including discharge observations)
-    Model hydrographs
+    Model hydrographs 
 
 
 Directories needed in run_dir:
@@ -32,7 +36,11 @@ Directories needed in run_dir:
     Figures
     Output (where hydrographs are )
 
-
+Output: 
+    OF_sorted.cv
+    ratio.csv
+    ND.csv
+    RRD_means.csv
 
 
 """
@@ -296,13 +304,7 @@ for Basin_name in BASIN_NAMES:
         max_frac  = glac_frac.max() #.max() or .quantile()
         OF['GFmax'] = max_frac
         OF['GC99']  = glac_frac.quantile(0.99)
-        # OF['fQ95'] = glac_frac_obs.quantile(0.95)
-        # OF['fQ90'] = glac_frac_obs.quantile(0.90)
         OF['GFmean'] = glac_frac.mean()
-
-        # basin_info.fQ99[Basin_name] = OF['fQ99']
-        # basin_info.GC99[Basin_name] = OF['GC99']
-        # basin_info.loc[Basin_name,'fQ90'] = OF['fQ90']
         basin_info.loc[Basin_name,'GC99'] = OF['GC99']
 
     OF_list.append(pd.DataFrame(OF,index=[Basin_name]))

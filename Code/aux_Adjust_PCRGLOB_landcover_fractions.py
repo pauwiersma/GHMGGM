@@ -2,30 +2,32 @@
 """
 Created on Tue Sep 21 11:23:39 2021
 
+Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
+Auxiliary script: Creation of the adjusted PCR-GLOBWB 2 landcover maps
 
-This script takes the PCRGLOB grassland (short vegetation) landcover fraction map 
-and subtracts the RGI glacier cover fraction from it. 
+
+This script takes the PCRGLOB grassland (short vegetation) landcover fraction map
+and subtracts the RGI glacier cover fraction from it.
 
 Files Needed:
     landmask_global_05min.map
     glob_glac_frac.tif
     vegf_short.map
-    vegf_tall.map 
+    vegf_tall.map
     fractionNonPaddy.map
     fractionPaddy.map
-    
-Other landcovers are needed because the vegetation fractions are expressed as fractions 
-of the pristine landcover (forest+grassland)
-    
-Output:
 
+Other landcovers are needed because the vegetation fractions are expressed as fractions
+of the pristine landcover (forest+grassland)
+
+Output:
+    short vegetation global landcover minus global glacier landcover 
 
 
 @author: Internet
 """
 
 # Adjust fractions
-# from osgeo import gdal
 import rasterio
 import glob
 import os
@@ -62,7 +64,7 @@ f_tall   = f_tallf.read(1)
 mask = f_pad<0
 for raster in f_nonpad,f_pad,f_glac,f_short,f_tall:
     raster[mask]=np.nan
-    
+
 #if Sometimes paddy+non_paddy>1, iterate to make sure they're 1
 for i in 0,1:
     f_irrigated             = f_pad+f_nonpad
@@ -95,15 +97,15 @@ command = 'asc2map --clone vegf_short.map '+filename+'.txt '+filename+'.map'
 print (command)
 subprocess.Popen(command,shell=True)
 
-""" 
-Profile should look like this 
+"""
+Profile should look like this
 {'driver': 'PCRaster', 'dtype': 'float32', 'nodata': -3.4028234663852886e+38, 'width': 4320, 'height': 2160, 'count': 1, 'crs': None, 'transform': Affine(0.083333, 0.0, -180.0,
        0.0, -0.083333, 90.0), 'tiled': False}
 """
-    
-    
+
+
 #%%
-# #### WRITE WITH RIOXARRAY if above doesn-t work 
+# #### WRITE WITH RIOXARRAY if above doesn-t work
 # import xarray as xr
 # import rioxarray as riox
 # xr_file = xr.open_rasterio(frac_paths[0])
@@ -112,6 +114,6 @@ Profile should look like this
 
 # f_shortn = f_shortf.where(f_shortf==None,f_short)
 
-# from os.path import join 
+# from os.path import join
 # outpath = frac_path = r'/media/sf_Thesis/Data/PCRGLOB/Adjust_fracs/evenredig'
 # f_shortn.rio.to_raster(join(outpath,'f_short_test.map'))

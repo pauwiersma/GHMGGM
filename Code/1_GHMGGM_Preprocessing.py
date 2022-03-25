@@ -7,8 +7,7 @@ Created on Mon Jan 25 16:27:45 2021
 @author: Pau Wiersma
 
 Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
-(1/3): Preprocessing
-
+(1/5): Preprocessing
 
 
 This script:
@@ -28,11 +27,10 @@ Files needed:
     GRDC metadata
     GRDC runoff observations
     Rivers from Yan et al. 2019 (https://doi.org/10.6084/m9.figshare.8044184.v5)
+    
+Output:
+    glaciers_nc files 
 
-
-To do:
-    isbasins
-    List all necessary files
 """
 #%% Packages
 import datetime as dt
@@ -213,7 +211,6 @@ def load_hybas(Basins_,B_):
     main_bas   = hybas_full['MAIN_BAS'][hybas_full.geometry.contains(
         gp.points_from_xy([Basins_[B_]['center_lon']],[Basins_[B_]['center_lat']])[0])].values[0]
     return hybas_full[hybas_full['MAIN_BAS']==main_bas]
-
 
 #%% Find/Load glacier sinks (most downstream point to include all glacier runoff)
 t = time.time()

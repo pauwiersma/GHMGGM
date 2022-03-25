@@ -3,7 +3,7 @@
 @author: Pau Wiersma
 
 Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
-(2/3): ewatercycle_runs
+(2/5): ewatercycle_runs
 
 This script:
     - Loads the NetCDF-files of (1/3): Preprocessing and couples them to PCR-GLOBWB 2
@@ -24,9 +24,11 @@ Files Needed:
     clone_global_05min.map
     ERA-Interim T&P nc files
     Adjusted landcover maps
+    
+Output:
+    Hydrographs
+    Daily variable maps (optional)
 
-
--
 """
 import datetime
 import os

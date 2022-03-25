@@ -2,6 +2,10 @@
 """
 @author: Pau Wiersma
 
+Scripts accompanying PCR-GLOBWB 2 and GloGEM coupling
+(5/5): Calculation and plotting of the different mechanisms explaining the 
+        runoff difference between the coupled model and the benchmark
+
 This script
     Calculates the annual runoff difference between the coupled model and the benchmark
     and the contribution of
