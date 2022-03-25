@@ -1,4 +1,30 @@
 # -*- coding: utf-8 -*-
+"""
+@author: Pau Wiersma
+
+This script
+    Calculates the annual runoff difference between the coupled model and the benchmark
+    and the contribution of
+        Snow towers
+        Glacier mass loss 
+        Spilling prevention
+    to this annual runoff difference
+    for the basins Alsek, Columbia, Oelfusa and Rhone
+
+Files needed
+    -HH2018 annual mass balance
+    -Subbasin shapefile 
+    -HH2018 Overview.dat
+    -daily SWE raster
+        -take annual mass balance from glacfrac
+        - Compare timing of snowmelt bewteen N0 and N2
+    - Hydrographs
+        - Take difference between hg0 and hg2 and see what percentage the mass balances take in it
+    -Cellsize raster
+    -Glacier fraction (isglac) from nc file
+    -GHMGGM_basin_info.csv
+
+"""
 
 import warnings
 warnings.filterwarnings('ignore')
@@ -14,40 +40,10 @@ import rioxarray as xrio
 import matplotlib.ticker
 from matplotlib import cm
 
-"""
-
-"""
 run_dir   = r'D:\Documents\Master Vakken\Thesis\Code'
 os.chdir(run_dir)
 files               = join(run_dir,'Code','Files')
-#%%
 
-"""
-@author: Pau Wiersma
-
-This script
-    Calculates the annual runoff difference between the coupled model and the benchmark
-    and the contribution of
-        Snow towers
-        Glacier mass loss 
-        Spilling prevention
-    to this annual runoff difference
-    for the basins Alsek, Columbia, Oelfusa and Rhone
-
-Files needed
--HH2018 annual mass balance
--Subbasin shapefile 
--HH2018 Overview.dat
--daily SWE raster
-    -take annual mass balance from glacfrac
-    - Compare timing of snowmelt bewteen N0 and N2
-- Hydrographs
-    - Take difference between hg0 and hg2 and see what percentage the mass balances take in it
--Cellsize raster
--Glacier fraction (isglac) from nc file
--GHMGGM_basin_info.csv
-
-"""
 #%% INPUTS
 files               = join(run_dir,'Files')
 figures             =join(run_dir,'Figures')
@@ -55,8 +51,6 @@ daily_outputs       =join(run_dir,'Output','daily_outputs')
 HH_MB               = join(files,'HH2018_validation')
 
 basin_info = pd.read_csv(join(files,'GHMGGM_basin_info.csv'),index_col = 0)
-# Basin_names = basin_info[basin_info['suitable']=='y'].index
-
 
 Basin_names = ['ALSEK','COLUMBIA','OELFUSA','RHONE']
 
@@ -71,6 +65,19 @@ GG_rcp              ='rcp26'
 Fromyear            =2000
 Untilyear           =2012
 
+#%% Function for ytick formatting 
+#(from https://stackoverflow.com/questions/42656139/set-scientific-notation-with-fixed-exponent-and-significant-digits-for-multiple)
+class OOMFormatter(matplotlib.ticker.ScalarFormatter):
+    def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
+        self.oom = order
+        self.fformat = fformat
+        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,useMathText=mathText)
+    def _set_order_of_magnitude(self):
+        self.orderOfMagnitude = self.oom
+    def _set_format(self, vmin=None, vmax=None):
+        self.format = self.fformat
+        if self._useMathText:
+            self.format = r'$\mathdefault{%s}$' % self.format
 #%%
 
 run_name = 'N'
@@ -213,18 +220,6 @@ for Basin_name in Basin_names:
 
 
 #%%
-class OOMFormatter(matplotlib.ticker.ScalarFormatter):
-    def __init__(self, order=0, fformat="%1.1f", offset=True, mathText=True):
-        self.oom = order
-        self.fformat = fformat
-        matplotlib.ticker.ScalarFormatter.__init__(self,useOffset=offset,useMathText=mathText)
-    def _set_order_of_magnitude(self):
-        self.orderOfMagnitude = self.oom
-    def _set_format(self, vmin=None, vmax=None):
-        self.format = self.fformat
-        if self._useMathText:
-            self.format = r'$\mathdefault{%s}$' % self.format
-
 
 f1,axes = plt.subplots(4,1,figsize=(10,8),sharex=True)
 plt.subplots_adjust(hspace=0.24)

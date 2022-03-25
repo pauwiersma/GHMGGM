@@ -27,9 +27,9 @@ Files needed:
         bas
     GRDC metadata
     GRDC runoff observations
-    Rivers from Yan et al. 2019 (https://doi.org/10.6084/m9.figshare.8044184.v5) 
+    Rivers from Yan et al. 2019 (https://doi.org/10.6084/m9.figshare.8044184.v5)
 
-    
+
 To do:
     isbasins
     List all necessary files
@@ -72,9 +72,9 @@ from matplotlib.lines import Line2D
 #%% Options and settings
 
 #Set running directory
-run_dir = r'D:\Documents\Master Vakken\Thesis\Code'
-os.chdir(run_dir)
-files               = join(run_dir,'Files')
+RUN_DIR = r'D:\Documents\Master Vakken\Thesis\Code'
+os.chdir(RUN_DIR)
+files               = join(RUN_DIR,'Files')
 
 
 GG_GCM              = 'HadGEM2-ES'  #GloGEM GCM (irrelevant for historical sims)
@@ -89,12 +89,12 @@ GHM_RESOLUTION      = 0.0833333
 FIND_BASINS         =False #True=create basin shapefiles, false=load
 FIND_SINK           =False #True=find, false=load from basin_info.csv
 
-# If FIND_GRDC_STATIONS==True, then the subbasins will not be searched and the run will 
-# stop after the plots. The plot will contain the GRDC stations that have observations 
+# If FIND_GRDC_STATIONS==True, then the subbasins will not be searched and the run will
+# stop after the plots. The plot will contain the GRDC stations that have observations
 # within OBS_MINYEAR and OBS_MAXYEAR with a minimum length of OBS_MINLEN years.
 # Select the station, download the data from the website, add it to basin_info.csv and
 #set FIND_GRDC_STATIONS to False again
-FIND_GRDC_STATIONS   =False
+FIND_GRDC_STATIONS   =True
 OBS_MINYEAR         =2000
 OBS_MAXYEAR         =2012
 OBS_MINLEN          =5
@@ -128,24 +128,20 @@ T_THRESHOLD         =268.15 #Daily mean T threshold above which weight is given 
 #Load basin_info.csv with all basin info
 basin_info = pd.read_csv(join(files,'GHMGGM_basin_info.csv'),index_col = 0)
 basin_names = basin_info[basin_info['suitable']=='y'].index
-# basin_names = ['RHONE','ALSEK']
-# basin_names = ['AMAZON']
-# basin_names = ['OB']
-
 
 #%% Create dictionary for each basin in loop
 Basins={}
 for B in basin_names:
     Basins[B]={}
-    for k in basin_info.keys():
+    for k in basin_info.KEYs():
         Basins[B][k]=basin_info.loc[B,k]
-    
+
 
 #%% Load paths, both for loading and for saving
 for B in basin_names:
-    
+
     RGI_dir          = Basins[B]['RGI_dir']
-        
+
     p     ={'basin_shp'     :join(files,'basin_geojsons',B+'.geojson'),
             'subbasin_shp'  :join(files,'subbasin_geojsons',B+'.geojson'),
             'isout'         :join(files,'isout','isout_'+B+'.nc'),
@@ -165,7 +161,7 @@ for B in basin_names:
             'nc_out'        :join(files,'glaciers_nc'),
             'Hydrosheds'    :join(files,'HydroSHEDS'),
             'yan_rivers'    :join(files,r'Yan2019rivers')}
-    
+
     #Load GRDC observation paths to include in NC-file
     if B=='RHONE':
         p['Beaucaire']  = join(files,'Q_obs','Beaucaire_1980_2014.csv')
@@ -198,7 +194,7 @@ for B in basin_names:
                             delim_whitespace=True,index_col=0)
     points              = gp.GeoSeries(gp.points_from_xy(Overview['lon'].values,Overview['lat'])
                                         ,index = Overview.index)
-    
+
     Basins[B]['GG_idxs']     =[Basins[B]['shp'].geometry.contains(point)[0] for point in points]
     Basins[B]['GG_points']   = points[Basins[B]['GG_idxs']]
     Basins[B]['GG_area0']    = Overview['Area0'][Basins[B]['GG_idxs']] # in km2
@@ -213,7 +209,7 @@ def load_hybas(Basins_,B_):
     hybas_dir           =os.path.join(Basins_[B_]['p']['Hydrosheds'],
                                       'hybas_files',hybas_cont_dir,hybas_cont_dir+'.shp')
     hybas_full               = gp.read_file(hybas_dir) #Full hybas for continent
-    
+
     main_bas   = hybas_full['MAIN_BAS'][hybas_full.geometry.contains(
         gp.points_from_xy([Basins_[B_]['center_lon']],[Basins_[B_]['center_lat']])[0])].values[0]
     return hybas_full[hybas_full['MAIN_BAS']==main_bas]
@@ -232,21 +228,21 @@ if FIND_SINK:
         for  point in Basins[B]['GG_points'].values:
             hybas_glac.append(hybas[hybas.geometry.contains(point)])
         hybas_glac = pd.concat(hybas_glac)
-        
-        #Determine routing using the Hydrosheds Pfafstetter coding system 
+
+        #Determine routing using the Hydrosheds Pfafstetter coding system
         #https://en.wikipedia.org/wiki/Pfafstetter_Coding_System & https://www.hydrosheds.org/page/hydrobasins
         for i in range(1,13):
-            key = 'PFAF_'+str(i)
+            KEY = 'PFAF_'+str(i)
             #look for first PFAF that's not the same for all
-            unq = np.unique(hybas_glac[key])
+            unq = np.unique(hybas_glac[KEY])
             if len(unq)>1:
                 un = np.min(unq)
                 if un%10!=1: # If the lowest PFAF hybas the sink of the subbasin
-                    levelx = hybas[hybas[key]==un]
+                    levelx = hybas[hybas[KEY]==un]
                     next_down = levelx.sort_values(by='DIST_MAIN').head(1).NEXT_DOWN
                     glac_sink=hybas[hybas.HYBAS_ID.values==next_down.values[0]].centroid
-                else: 
-                    level1 = hybas[hybas[key]==un]
+                else:
+                    level1 = hybas[hybas[KEY]==un]
                     glac_sink = level1.sort_values(by='DIST_MAIN').head(1).centroid
                 break
         Basins[B]['glac_sink'] = glac_sink
@@ -264,25 +260,25 @@ if FIND_GRDC_STATIONS:
     #Load GRDC station metadata
     GRDC_meta       = pd.read_csv(os.path.join(files,'GRDC_Stations.csv')
                                   ,na_values = 'n.a.', index_col = 0)
-    
+
     for B in basin_names:
         GRDC_name = Basins[B]['GRDC_name']
-        
+
         GR_stats = GRDC_meta[(GRDC_meta.river==GRDC_name)]
         if B=='NEGRO':
             GR_stats = GR_stats[GR_stats.country=='AR'] #There are multiple
-        
-        if GR_stats.size==0: 
+
+        if GR_stats.size==0:
             print(GRDC_name+' doens"t appear in GRDC metadata')
             continue
-        
+
         #Find all stations that fulfill the OBS requirements
         GR_day = GR_stats[(GR_stats.d_start<=OBS_MAXYEAR)&(GR_stats.d_end>=OBS_MINYEAR)]
         GR_day = GR_day[GR_day.d_end-GR_day.d_start>=OBS_MINLEN]
         if GR_day.size==0:
             print ('No GRDC station with full daterange for '+GRDC_name)
             continue
-        
+
         print (B+' GRDC: '+str(GR_day.shape[0])+' stations loaded with day data')
         Basins[B]['GRDC_stationlist']=GR_day
     ##### Add GRDC station info to basin_info45min.csv
@@ -292,53 +288,53 @@ if not FIND_GRDC_STATIONS:
     if FIND_SUBBASIN:
         for B in basin_names:
             print (B+' Creating subbasin')
-            
+
             if B in ['OELFUSA','THJORSA']: #Station is just downstream of basin borders
                 print ('Station falls outside of basin, subbasin equals basin')
                 Basins[B]['subshp'] = Basins[B]['shp']
                 Basins[B]['subshp'].to_file(Basins[B]['p']['subbasin_shp'],driver='GeoJSON')
                 continue
-            
+
             hybas = load_hybas(Basins,B)
-            
+
             station_point = gp.GeoSeries(gp.points_from_xy([Basins[B]['station_lon']],
                                                           [Basins[B]['station_lat']]))[0]
             hybas_station      = hybas[hybas.geometry.contains(station_point)]
-            
+
             if B in ['COPPER','OB']:
                 hybas_station=hybas[hybas.HYBAS_ID.values==hybas_station.NEXT_DOWN.values]
-        
+
             #Select all stations with larger distance to the river sink
             larger_dist     = hybas[hybas.DIST_MAIN>hybas_station.DIST_MAIN.values[0]]
             t = time.time()
             for i in range(1,13):
-                key = 'PFAF_'+str(i) 
-                statpfaf = hybas_station[key].values[0]
-                if not np.all(larger_dist[key]==statpfaf):
-                    key = 'PFAF_'+str(i-1) #The last PFAF that all have in common
-                    statpfaf = hybas_station[key].values[0] 
-                    # print (key)
-                    selection = larger_dist[larger_dist[key]==statpfaf]
-                    # Now we have a selection of hybas that share the highest common PFAF, 
+                KEY = 'PFAF_'+str(i)
+                statpfaf = hybas_station[KEY].values[0]
+                if not np.all(larger_dist[KEY]==statpfaf):
+                    KEY = 'PFAF_'+str(i-1) #The last PFAF that all have in common
+                    statpfaf = hybas_station[KEY].values[0]
+                    # print (KEY)
+                    selection = larger_dist[larger_dist[KEY]==statpfaf]
+                    # Now we have a selection of hybas that share the highest common PFAF,
                     # but there may be hybas that don't drain in hybas_station
                     # A first check is to see if there are hybas with higher UP_AREA, that would mean
                     # hybas_station is not in the main branch of the river
                     if np.any(selection.UP_AREA>hybas_station.UP_AREA.values[0]):
                         #If station_hybas is not in the main branch, then the whole subbasin will be inside
                         # this PFAF
-                        keyplusone = 'PFAF_'+str(i+1)
-                        statpfafplusone=hybas_station[keyplusone].values[0]
-                        selection = selection[selection[keyplusone]==statpfafplusone]
-                        
+                        KEYplusone = 'PFAF_'+str(i+1)
+                        statpfafplusone=hybas_station[KEYplusone].values[0]
+                        selection = selection[selection[KEYplusone]==statpfafplusone]
+
                     # Create a blacklist, loop through hybas and add any basins that don't eventually drain into hybas_station
                     blacklist = np.zeros(len(selection),dtype=bool)
                     for j in range(len(selection)):
                         #Start from hybas and follow the river to see if it passes hybas_station
                         next_down = selection.iloc[j,:]
-                        found = False
-                        while not found:
+                        FOUND = False
+                        while not FOUND:
                             if next_down.NEXT_DOWN==hybas_station.HYBAS_ID.values[0]:
-                                found=True
+                                FOUND=True
                             else:
                                 next_down = larger_dist[larger_dist.HYBAS_ID==next_down.NEXT_DOWN]
                                 if len(next_down)==0:
@@ -353,7 +349,7 @@ if not FIND_GRDC_STATIONS:
     else:
         for B in basin_names:
             Basins[B]['subshp'] = gp.read_file(Basins[B]['p']['subbasin_shp'])
-                              
+
 
 #%% Find extents
 if not FIND_GRDC_STATIONS:
@@ -370,22 +366,22 @@ if not FIND_GRDC_STATIONS:
                 URC[0]+=1
             while abs(URC[1]-LLC[1])%3!=0:
                 URC[1]+=1
-        
+
         Basins[B]['llc_lon']    =LLC[0]
         Basins[B]['llc_lat']    =LLC[1]
         Basins[B]['urc_lon']    =URC[0]
         Basins[B]['urc_lat']    =URC[1]
-        
+
         basin_info.loc[B,'llc_lon']    =LLC[0]
         basin_info.loc[B,'llc_lat']    =LLC[1]
         basin_info.loc[B,'urc_lon']    =URC[0]
         basin_info.loc[B,'urc_lat']    =URC[1]
-        
+
     basin_info.to_csv(join(files,'GHMGGM_basin_info.csv'))
 
 #%% Make clonemaps
 
-# This section contains a workaround due to spaces in the directory, 
+# This section contains a workaround due to spaces in the directory,
 # Rewrite if your directory doesn't contain spaces
 if FIND_CLONE:
     for B in basin_names:
@@ -393,11 +389,11 @@ if FIND_CLONE:
         source = join(r'd:\Documents\clonemaps','clone_global_05min.map')
         temp_dest = join(r'd:\Documents\clonemaps',B+'_05min.clone.map')
         dest   = join(Basins[B]['p']['clonemaps'],B+'_05min.clone.map')
-        
+
         def coord2string(coord):
             return Basins[B][coord].astype(float).astype(str)
         coord2string('llc_lon')
-        
+
         command     = 'gdal_translate -of PCRASTER -projwin '+\
             coord2string('llc_lon')+' '+coord2string('urc_lat')+\
                 ' '+coord2string('urc_lon')+' '+coord2string('llc_lat')+' '\
@@ -409,7 +405,7 @@ if FIND_CLONE:
 #%% Plot basin, subbasin, GRDC station, glaciers and background map
 if PLOT_BASIN:
     for B in basin_names:
-        
+
         ### Part to load RGI glacier shapefile
         # RGI_path = Basins[B]['RGI_dir']
         # if 'RGI02' in RGI_path:
@@ -421,7 +417,7 @@ if PLOT_BASIN:
         # bpoints = Basins[B]['GG_points'].index
         # rgibasin = rgishp.iloc[bpoints[bpoints<rgishp.index.max()]-1,:].geometry
         # print (bpoints.max(),rgishp.index.max())
-        
+
         # print ('Plot '+B)
         FIGSIZE=10
         SHAPEX=0.8
@@ -429,7 +425,7 @@ if PLOT_BASIN:
         ax1 = f1.add_subplot(projection=ccrs.PlateCarree())
         ax1.set_extent((Basins[B]['llc_lon'],Basins[B]['urc_lon'],
                         Basins[B]['llc_lat'],Basins[B]['urc_lat']))
-        
+
         #Plot basemap
         ax1.coastlines()
         ax1.gridlines(draw_labels=True)
@@ -438,13 +434,13 @@ if PLOT_BASIN:
         ax1.add_feature(cfeature.BORDERS,linestyle=':',linewidth=1.5)
         # ax1.add_feature(cfeature.RIVERS,color='b',linewidth=1)
         ax1.add_feature(cfeature.LAKES,color='b')
-        
+
         cont = Basins[B]['continent']
         if cont=='ar':
             cont='na'
         if cont =='si':
             cont='as'
-        
+
         #Plot rivers
         #Rivers of Yan et al. 2019 are higher resolution than the cartopy set (https://doi.org/10.1038/s41597-019-0243-y)
         yan_river_path = join(p['yan_rivers'],cont+'_river.shp')
@@ -453,11 +449,11 @@ if PLOT_BASIN:
                                   Basins[B]['urc_lon'],Basins[B]['urc_lat']))
         yan_river.plot(ax=ax1,color='b',alpha=0.7)
         Basins[B]['shp'].plot(ax=ax1,alpha=0.3,label=B,color='tab:blue')
-        
+
         #Test with hybas:
         # hybas =load_hybas(Basins,B)
         # hybas.plot(ax=ax1,facecolor=None,edgecolor='black',alpha=0.5)
-        
+
         #Station plot
         if not FIND_GRDC_STATIONS: #Plot the selected GRDC station
             Basins[B]['subshp'].plot(ax=ax1,color='tab:blue',alpha=0.5,edgecolor='black')
@@ -477,12 +473,12 @@ if PLOT_BASIN:
                              bbox=dict( fc="0.9",alpha=0.5))
             GRDC =Line2D([0],[0],marker='o',linestyle='None',
                    markerfacecolor='y',markeredgecolor='y',
-                   markersize=5,label='GRDC stations') 
-        
+                   markersize=5,label='GRDC stations')
+
         #Plot all RGI glacier points in the basin, with the point size scaled based on the glacier area
         Basins[B]['GG_points'].plot(ax=ax1,color='red',
                         markersize=Basins[B]['GG_area0']*2,label='Glaciers')
-        
+
         ### Part to load and plot RGI glacier shapefile
         # RGI_path = Basins[B]['RGI_dir']
         # if 'RGI02' in RGI_path:
@@ -495,8 +491,8 @@ if PLOT_BASIN:
         # rgibasin = rgishp.iloc[bpoints[bpoints<rgishp.index.max()]-1,:].geometry
         # print (bpoints.max(),rgishp.index.max())
         # rgibasin.plot(ax=ax1,color='white')
-        
-        
+
+
         #Plot glacier sink
         if len(Basins[B]['glac_sink'])==0:
             print ('No glacier sink found')
@@ -513,22 +509,22 @@ if PLOT_BASIN:
                    markersize=5,label='Glaciers')
         ax1.legend(handles = [red_dot,GRDC,green_dot])
         # if SAVE_FIG == True:
-        #     save_at = join(run_dir,r'Code\Figures\Basin_maps\subbasins',B+'_map')
+        #     save_at = join(RUN_DIR,r'Code\Figures\Basin_maps\subbasins',B+'_map')
         #     plt.savefig(save_at,bbox_inches='tight')
         #     plt.show()
-        
-        #save as vectorplot 
+
+        #save as vectorplot
         if SAVE_FIG:
-            save_at = join(run_dir,r'Figures\Basin_maps\subbasins',B+'_map_RGI.svg')
+            save_at = join(RUN_DIR,r'Figures\Basin_maps\subbasins',B+'_map_RGI.svg')
             plt.savefig(save_at,format = 'svg',bbox_inches='tight')
             plt.show()
-            
+
 if FIND_GRDC_STATIONS:
     print ('Exit to find GRDC stations')
     sys.exit()
 
 #%% Define rasterize function using geocube (point runoff data to raster runoff data)
-def rasterize(vector,var_key,merge_algorithm='replace'):
+def rasterize(vector,var_KEY,merge_algorithm='replace'):
     vector['bool'] = 1
     llc_lon,llc_lat,urc_lon,urc_lat = [
         Basins[B][i] for i in ['llc_lon','llc_lat','urc_lon','urc_lat']]
@@ -539,14 +535,14 @@ def rasterize(vector,var_key,merge_algorithm='replace'):
     # print(B, vector.R.sum())
     # print(lon360)
     # print(latflip)
-    
+
     #rasterio.enums.MergeAlg algorithms, default is replace
     if merge_algorithm == 'add':
         MERGE_ALG=MergeAlg.add
     elif merge_algorithm =='replace':
         MERGE_ALG=MergeAlg.replace
     geo_grid=make_geocube(vector_data=vector,
-                           measurements = [var_key],
+                           measurements = [var_KEY],
                           resolution = (res,res),
                           geom = json.dumps(mapping(box(llc_lon+lon360,
                                                         llc_lat*latflip,
@@ -558,11 +554,11 @@ def rasterize(vector,var_key,merge_algorithm='replace'):
     geo_grid['y'] = geo_grid['y']*latflip
     geo_grid= geo_grid.rename({'y':'lat','x':'lon'})
     geo_grid = geo_grid.where(~xr.ufuncs.isnan(geo_grid),0,drop=False)
-    
+
     # pointsum  = vector.R.sum()
     # rastersum = np.float(geo_grid.R.sum().data)
     # print(rastersum/pointsum)
-    
+
     return geo_grid
 
 
@@ -578,17 +574,17 @@ if FIND_ISOUT_ISGLAC:
         glac_frac = gp.read_file(Basins[B]['p']['globglacfrac'],bbox=bbox) # basin_geo = shape(basin['geometry']).buffer(0.0001) #buffer against invalid shape error
         glob_mask = gp.read_file(Basins[B]['p']['glob_mask'],
                                  bbox=bbox)  #Global vectorized landmask on the GHM resolution
-    
+
         print (B+' isout & isglac')
         basin_geo = Basins[B]['subshp'].geometry[0]
         if B in ['YUKON','MACKENZIE','OB']:
             basin_geo = basin_geo.buffer(0.000001)
         # basin_geo = basin_geo.buffer(-0.001)
-        
+
         #append all grid cells with glaciers in it
-        isglac_idx = [] 
+        isglac_idx = []
         #append all grid cells with glaciers & grid cell area >50% outside basin boundaries
-        isout_idx=[]   
+        isout_idx=[]
         for i in range(len(glac_frac)):
             cell = glac_frac.geometry[i]
             if cell.intersects(basin_geo):
@@ -603,7 +599,7 @@ if FIND_ISOUT_ISGLAC:
 
         isglac_vec = glac_frac.loc[isglac_idx]
         isout_vec  = glac_frac.loc[isout_idx]
-        
+
         isbasin_idx = []
         for i in range(len(glob_mask)):
             cell=glob_mask.geometry[i]
@@ -613,7 +609,7 @@ if FIND_ISOUT_ISGLAC:
                 if (diff.area/cell.area)<0.5:
                     isbasin_idx.append(i)
         isbasin_vec = glob_mask.loc[isbasin_idx]
-        
+
         f1,ax1=plt.subplots(figsize=(10,7))
         isbasin_vec.plot(ax=ax1,color='tab:red',alpha=0.7,label='Basin grid')
         isglac_vec.plot(ax=ax1,alpha=0.7,color='tab:blue',label='Glacier grid')
@@ -621,21 +617,21 @@ if FIND_ISOUT_ISGLAC:
         Basins[B]['subshp'].plot(ax=ax1,facecolor='None',edgecolor='tab:blue',label='Basin shapefile')
         # ax1.legend(['a','b','c','d'])
         ax1.set_title(B.title())
-        
+
         #Rasterize isglac & isout
 
         isglac = rasterize(isglac_vec,'glac_frac').glac_frac
         isout  = rasterize(isout_vec,'bool').bool
         isbasin=rasterize(isbasin_vec,'bool').bool
-        
+
         Basins[B]['isglac'] = isglac
         Basins[B]['isout']  = isout
         Basins[B]['isbasin']=isbasin
-        
+
         isout.to_netcdf(Basins[B]['p']['isout'])
         isglac.to_netcdf(Basins[B]['p']['isglac'])
         isbasin.to_netcdf(Basins[B]['p']['isbasin'])
-        
+
         #Save as raster tif
         # isglac.rename({'lat':'y','lon':'x'}).rio.to_raster(Basins[B]['p']['isglac'])
         # isout.rename({'lat':'y','lon':'x'}).rio.to_raster(Basins[B]['p']['isout'])
@@ -661,7 +657,7 @@ for B in basin_names:
                                            freq='M') #.strftime('%Y-%m')
         Basins[B]['Q_days']      = pd.date_range(str(GG_FROMYEAR-1)+'-09-01',
                                     str(GG_UNTILYEAR)+'-09-30')
-    else: 
+    else:
         startdate   =str(GG_FROMYEAR-1)+'-04-01'
         enddate     =str(GG_UNTILYEAR)+'-03-31'
         Basins[B]['Q_months']    =pd.date_range(str(GG_FROMYEAR-1)+'-03',
@@ -669,9 +665,9 @@ for B in basin_names:
                                    freq='M')#.strftime('%Y-%m')
         Basins[B]['Q_days']      = pd.date_range(str(GG_FROMYEAR-1)+'-03-01',
                                     str(GG_UNTILYEAR)+'-03-31')
-        
-    Basins[B]['daterange'] =pd.date_range(startdate,enddate) 
-    
+
+    Basins[B]['daterange'] =pd.date_range(startdate,enddate)
+
 
 #%% Load GloGEM timeseries
 for B in basin_names:
@@ -681,7 +677,7 @@ for B in basin_names:
     if (Basins[B]['RGI_dir'] == 'RGI17_SouthernAndes') or \
         (Basins[B]['RGI_dir'] == 'RGI16_LowLatitudes'):    delimiter=','
     else:    delimiter = '   '
-    
+
     Q_catch      = pd.read_csv(Basins[B]['p']['Qcatch'],
                         skiprows=[0],
                         usecols=[0,*range((GG_FROMYEAR-1980)*12,(GG_UNTILYEAR+1-1980)*12+1)],
@@ -693,37 +689,12 @@ for B in basin_names:
                         dtype=float)
     Q_catch     =Q_catch.transpose()
     Q_catch     =Q_catch.set_index(Basins[B]['Q_months'])
-    
+
     Q_catch  = Q_catch.loc[:,Basins[B]['GG_points'].index] # in m
     Basins[B]['Q_volume'] = (Basins[B]['GG_area0']*1e6)*Q_catch #in m3
 
 #%% Rasterize GloGEM from point data
 if FIND_QM:
-    # def rasterize(month,Basins,B,res = GHM_RESOLUTION):
-    #     """ This function converts the monthly runoff data per individual glacier into 
-    #     monthly runoff grid data with Geocube 
-    #     """
-    #     gdf        = gp.GeoDataFrame({'geometry':Basins[B]['GG_points'],
-    #             'R':Basins[B]['Q_volume'][month.strftime('%Y-%m')].values[0]})
-    #     #Perform rasterize in positive coordinates and then flip back
-    #     lon360   = 360 *(Basins[B]['llc_lon']<0)
-    #     latflip   = 1-2* (Basins[B]['llc_lat']<0)
-    #     gdf.geometry = gdf.geometry.affine_transform([1,0,0,latflip,lon360,0])    
-    #     geo_grid    = make_geocube(vector_data = gdf,
-    #             measurements = ['R'],
-    #             resolution = (res,res),
-    #             geom = json.dumps(mapping(box(Basins[B]['llc_lon']+lon360,
-    #                                           Basins[B]['llc_lat']*latflip,
-    #                                           Basins[B]['urc_lon']+lon360,
-    #                                           Basins[B]['urc_lat']*latflip))),
-    #             rasterize_function=partial(rasterize_image,merge_alg = MergeAlg.add),
-    #             fill = 0)
-    #     geo_grid['x'] = geo_grid['x']-lon360
-    #     geo_grid['y'] = geo_grid['y']*latflip
-    #     return geo_grid
-    
-    
-
     for B in basin_names:
         print ('Rasterize '+B)
         def find_gdf(month):
@@ -731,24 +702,24 @@ if FIND_QM:
                 'R':Basins[B]['Q_volume'][month.strftime('%Y-%m')].values[0]})
         Qlist       = [rasterize(find_gdf(m),'R','add') for m in Basins[B]['Q_months']]
         # Qlist       = [rasterize(m,Basins,B) for m in Basins[B]['Q_months']]
-        
-        
+
+
         Qm          = xr.concat(Qlist,dim=pd.Index(Basins[B]['Q_months'],name='time'))
-        
-        
-        
+
+
+
         #Mass conservation check
         pointsum  = Basins[B]['Q_volume'].sum().sum()
         rastersum = Qm.R.sum().data
         print ('Monthly rastersum is '+str(round((rastersum/pointsum)*100,3))+' % of pointsum')
-        
+
         Qm.to_netcdf(Basins[B]['p']['Qm'])
         Qm.close()
 else:
     for B in basin_names:
         if not os.path.isfile(Basins[B]['p']['Qm']):
             print ('No Qm for '+B+' this daterange')
-    
+
 
 #%% Resampling of GloGEM data from monthly to daily resolution using ERA-Interim temperature data
 
@@ -759,33 +730,33 @@ if FIND_QD:
         with xr.open_dataset(Basins[B]['p']['Qm']) as Qm:
             Qm_=Qm
         # Qm_          = xr.open_dataset(Basins[B]['p']['Qm_'])
-        Qd          = Qm_.resample(time='D').bfill() 
+        Qd          = Qm_.resample(time='D').bfill()
         Qd          = Qd.sel(time=Basins[B]['daterange']) # Get rid of extra months at start and finish
         if 'x' in Qd.dims:
             Qd          = Qd.rename({'x':'lon','y':'lat'})
-        
+
         ### Setup dates and temperature series
         #Hydrolical year is from October 1st to September 30th (april 1st to March 31st in Southern Hemisphere (6 months earlier))
         Q_mlen      = [m.day for m in Basins[B]['Q_months']] #Lengths of months over the daterange
         Q_halfidx   = np.cumsum(Q_mlen)-16      #Index of Dates halfway the months
         Q_mhalf     = Basins[B]['Q_days'][Q_halfidx]         #Dates halfway the months
-        
-        
+
+
         if ERA_RESAMPLE == True: #Resample with a temperature weight function
-        
+
             ### LOAD ERA-INTERIM DATA
             ERA_full        =xr.open_dataset(Basins[B]['p']['ERA_tas']).load()
             ERA_full['lon'] = xr.where(ERA_full.lon>180,ERA_full.lon-360,ERA_full.lon)
             ERA_full['lon_bnds'] = xr.where(ERA_full.lon_bnds>180,ERA_full.lon_bnds-360,ERA_full.lon_bnds)
             ERA                 = ERA_full.sel(time=Basins[B]['daterange'])
-            
+
             if not np.all(Qd.time==ERA.time):
-                print ('Dates do not match!')        
-                
+                print ('Dates do not match!')
+
             w_15    = xr.zeros_like(ERA.tas)
             day     = 0
             #Loop through months, D=number of days in month
-            
+
             t=time.time()
             for D in Q_mlen:   #nvm #[1:-1]: #Get rid of extra months at start and finish
                 for lats in ERA.lat:
@@ -807,15 +778,15 @@ if FIND_QD:
                                           0)
                 day+=D
             print (time.time()-t,'seconds have passed in resampling loop')
-            
-            #Upscale to 5 arcmin 
+
+            #Upscale to 5 arcmin
             w_05    = w_15.interp_like(Qd,method='nearest',
                                         kwargs={'fill_value':'extrapolate'})
-            
+
             if not np.all(np.round(w_05.sum(axis=0))==len(Basins[B]['Q_months'])-1):
-                print('Weights do not add up to 1!') 
-                
-                
+                print('Weights do not add up to 1!')
+
+
         else:
             #Simply divide by number of days in month
             w_05 =xr.zeros_like(Qd.R)
@@ -824,14 +795,14 @@ if FIND_QD:
                 w_05.loc[w_05.time[day:day+D]]=1/D
                 day+=D
             if not np.all(np.round(w_05.sum(axis=0))==len(Basins[B]['Q_months'])-1):
-                print('Weights do not add up to 1!')         
-        
+                print('Weights do not add up to 1!')
+
         Qd    = Qd*w_05
-        
+
         pointsum  = Basins[B]['Q_volume'][1:].sum().sum().data
         rastersum = Qd.R.sum().data
         print ('Rastersum is '+str(round((rastersum/pointsum)*100,3))+' % of pointsum')
-        
+
         Qm_.close()
         Qd.to_netcdf(Basins[B]['p']['Qd'])
 else:
@@ -839,8 +810,8 @@ else:
         if not os.path.isfile(Basins[B]['p']['Qd']):
             print ('No Qd for '+B+' this daterange')
 
-    
-    
+
+
 #%% Spilling prevention
 # Take all runoff from isout grid cells and transfer to nearby safe grid cells
 if SPILLING_PREVENTION:
@@ -849,10 +820,10 @@ if SPILLING_PREVENTION:
         with xr.open_dataset(Basins[B]['p']['Qd']) as Qd_:
             Qd=Qd_
         Qd = Qd.where(~xr.ufuncs.isnan(Qd),0) #Crucial to remove nans
-        
+
         R_out=0 #Total runoff that would've spilled
         spilled = 0
-        
+
         #Way too complicated loop to make sure all runoff falls inside basin
         for i in range(Qd.dims['lat']):
             for j in range(Qd.dims['lon']):
@@ -877,26 +848,26 @@ if SPILLING_PREVENTION:
                                 R_out    =R_out+ Qd.R.loc[:,lats,lons].sum()
                                 Qd.R.loc[:,lats,lons]=0
                                 SUCCESS=True
-                                break            
+                                break
                             if ii==jj==1:
                                 spilled = spilled + Qd.R.loc[:,lats,lons].sum()
                                 print ('Runoff falls out of basin at',latss.data,lonss.data)
                         if SUCCESS:break
-        
-        R_total = Qd.R.sum() 
+
+        R_total = Qd.R.sum()
         outfrac = R_out/R_total
         spillfrac = spilled/R_total
         print (str(np.round(float(outfrac)*100,3))+'% of the total runoff would fall outside basin and is thrown back in')
         print (str(np.round(float(spillfrac)*100,3))+'% of the total runoff is spilled')
-        
+
         pointsum  = Basins[B]['Q_volume'][1:].sum().sum()
         rastersum = Qd.R.sum().data
         print ('Rastersum is '+str(round((rastersum/pointsum)*100,3))+' % of pointsum')
-        
+
         basin_info.loc[B,'pct_spilled']    =outfrac.data
-        
+
         #Create output for Aletsch (&Rhone) glacier observation comparison
-        if B=='RHONE': 
+        if B=='RHONE':
             Aletsch_Q = Qd.R[:,41:43,60].sum(axis=1)
             Aletsch_Q.to_netcdf(join(files,'Aletsch_Q_'+str(WEIGHT_FACTOR)+'.nc'))
             Rhoneglac_Q = Qd.R[:,42,64]
@@ -906,21 +877,18 @@ if SPILLING_PREVENTION:
 
         Qd.to_netcdf(Basins[B]['p']['Qsp'])
     basin_info.to_csv(join(files,'GHMGGM_basin_info.csv'))
-    # 
+    #
 #%% Add Hydrographs to the netcdf files
 for B in basin_names:
     if SPILLING_PREVENTION:
         with xr.open_dataset(Basins[B]['p']['Qsp']) as Qfinal_:
             Qfinal=Qfinal_
-    else: 
+    else:
         with xr.open_dataset(Basins[B]['p']['Qd']) as Qfinal_:
-            Qfinal=Qfinal_    
+            Qfinal=Qfinal_
     if INCLUDE_HG:
         print (B+' load basin runoff observations')
         #Load Basin discharge observations
-
-            
-            
         if B=='RHONE':
             beau_total  = pd.read_csv(Basins[B]['p']['Beaucaire']
                                       ,index_col=0,
@@ -959,29 +927,22 @@ for B in basin_names:
                                  usecols=[0,2])
                 hg = hg.rename(columns  = {'YYYY-MM-DD':'Date','Value':'Q'})
                 hg_full = pd.DataFrame(data=hg,index=Basins[B]['daterange'])
-                # if stations==1:
                 Qfinal['hg']=(('time'),hg_full['Q'])
-                # elif stations==2:
-                #     Qfinal['hg2']=(('time'),hg_full['Q'])
                 Qfinal.hg.attrs['observation_date_range'] = (dt.datetime.strftime(hg.index[0].date(),'%Y-%m-%d'),\
                     dt.datetime.strftime(hg.index[-1].date(),'%Y-%m-%d'))
                 Qfinal.hg.attrs['long_var_name'] = 'Hydrograph of observations downstream'
                 Qfinal.hg.attrs['unit'] = 'm3/s'
                 Qfinal.hg.attrs['source']='GRDC'
                 Qfinal.hg.attrs['station']=os.path.basename(path).split('_')[1]
-                # stations+=1
         Qfinal.attrs['station_coords'] = (Basins[B]['station_lon'],
                                               Basins[B]['station_lat'])
-        # if ~np.isnan(Basins[B]['station_lon2']):
-        #     Qfinal.attrs['station_coords2'] = (Basins[B]['station_lon2'],
-        #                                       Basins[B]['station_lat2'])
     if INCLUDE_SP_AUX:
         Qfinal['isout']     =(('lat','lon'),Basins[B]['isout']) #Needs to be DataArray
         Qfinal['isglac']    =(('lat','lon'),Basins[B]['isglac'])
         Qfinal['isbasin']   =(('lat','lon'),Basins[B]['isbasin'])
     Qfinal.to_netcdf(Basins[B]['p']['Qfinal'])
 
-#%% Add attributes and save 
+#%% Add attributes and save
 if SAVE_NC:
     for B in basin_names:
         with xr.open_dataset(Basins[B]['p']['Qfinal']) as Qfinal_:
@@ -993,157 +954,9 @@ if SAVE_NC:
         Qfinal.R.attrs['unit'] = 'm3/day'
         Qfinal.R.attrs['long_var_name']='Glacier Runoff from GloGEM'
         Qfinal.R.attrs['glaciaction_degree'] = Basins[B]['glac_degree']
-        # Qfinal.to_netcdf(Basins[B]['p']['Qfinal'])
         Qfinal.to_netcdf(join(
             Basins[B]['p']['nc_out'],'_'.join([B,
                                         str(GG_FROMYEAR),
                                         str(GG_UNTILYEAR),
                                         RUN_NAME,
                                         'R.nc'])))
-
-
-#%% Create worldmap with all basins 
-# OF30 = pd.read_csv(join(r'd:\Documents\Master vakken\Thesis\Code\Output',
-#                         'OF29.csv'),index_col=0)
-
-if CREATE_WORLDMAP:
-    
-    FIGSIZE=10
-    SHAPEX=0.6
-    f1 = plt.figure(figsize=(FIGSIZE,SHAPEX*FIGSIZE))
-    
-    OCEANALPHA=0.02
-    ax1 = f1.add_axes(projection=ccrs.PlateCarree(),
-                         rect = [0,0,1,1])
-    ax1.set_extent((-120,118,-60,85),crs=ccrs.PlateCarree())
-    ax1.coastlines()
-    ax1.add_feature(cfeature.LAND,color='green',alpha=0.00)
-    # ax1.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
-    
-    #NEW-ZEALAND subaxes
-    ax2 = f1.add_axes(projection=ccrs.PlateCarree(),
-                         rect=[0.762,0.00,0.3,0.4])
-    ax2.set_extent((160,180,-60,-30),crs=ccrs.PlateCarree())
-    ax2.coastlines()
-    ax2.add_feature(cfeature.LAND,color='green',alpha=00)
-    # ax2.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
-
-    
-    #North-America subaxes
-    ax3 = f1.add_axes(projection=ccrs.PlateCarree(),
-                 rect=[0.007,0.519,0.39,0.51])
-    ax3.set_extent((-179,-100,30,85),crs=ccrs.PlateCarree())
-    ax3.coastlines()
-    ax3.add_feature(cfeature.LAND,color='green',alpha=00)
-    # ax3.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
-    
-    #Iceland subaxes
-    ax4 = f1.add_axes(projection=ccrs.PlateCarree(),
-          rect=[0.470,0.0,0.4,0.3])
-    ax4.set_extent((-28,-10,60,70),crs=ccrs.PlateCarree())
-    ax4.coastlines()
-    ax4.add_feature(cfeature.LAND,color='green',alpha=00)
-    # ax4.add_feature(cfeature.OCEAN,color='blue',alpha=OCEANALPHA)
-
-    #Large
-    # arrowxy = {'AMAZON':[-3,-3],
-    #            'IRRAWADDY':[5,5],
-    #            'MACKENZIE':[2,0],
-    #            'YUKON':[-4,10],
-    #            'ALSEK':[-8,-3],
-    #            'CLUTHA':[3,-3],
-    #            'COLUMBIA':[0,-8],
-    #            'COPPER':[-9,-5],
-    #            'DRAMSELV':[-12,4],
-    #            'FRASER':[-12,-7],
-    #            'GLOMA':[-5,7],
-    #            'KUSKOKWIM':[-20,-5],
-    #            'NASS':[-12,-7],
-    #            'NEGRO':[0,6],
-    #            'OELFUSA':[-3,-1],
-    #            'RHINE':[6,2],
-    #            'RHONE':[-3,-6],
-    #            'SKAGIT':[-10,-7],
-    #            'SKEENA':[-8,-5.5],
-    #            'STIKINE':[-12,-5],
-    #            'SUSITNA':[-12,-10],
-    #            'TAKU':[-10,-3.5],
-    #            'THJORSA':[-1,-2],
-    #            'OB'     :[-3,-3],
-    #            'DANUBE': [5,5]}
-    
-    #Smaller figure
-    arrowxy = {'AMAZON':[-3,-3],
-           'IRRAWADDY':[2,7],
-           'MACKENZIE':[2,0],
-           'YUKON':[-4,10],
-           'ALSEK':[-12,-7],
-           'CLUTHA':[3,-3],
-           'COLUMBIA':[0,-8],
-           'COPPER':[-11,-5],
-           'DRAMSELV':[-14,4],
-           'FRASER':[-12,-9],
-           'GLOMA':[-5,7],
-           'KUSKOKWIM':[-16,-3],
-           'NASS':[-17,-12],
-           'NEGRO':[0,6],
-           'OELFUSA':[-3,-1],
-           'RHINE':[6,2],
-           'RHONE':[-5,-10],
-           'SKAGIT':[-10,-9],
-           'SKEENA':[-8,-7.5],
-           'STIKINE':[-17,-10],
-           'SUSITNA':[-18,-8],
-           'TAKU':[-15,-8.5],
-           'THJORSA':[-1,-2],
-           'OB'     :[-3,-3],
-           'DANUBE': [8,5]}
-    
-
-    cmap   = plt.cm.Blues
-    VMIN =0
-    import matplotlib.colors as mcolors
-    
-    
-    norm = mcolors.Normalize(vmin=VMIN, vmax=20)
-    
-
-    
-    for B in basin_names:
-        if B=='CLUTHA':
-            ax=ax2
-        elif (Basins[B]['center_lon']<-50)&(Basins[B]['center_lat']>0):
-            ax=ax3
-        elif B in ['THJORSA','OELFUSA']:
-            ax=ax4
-            ax1.add_geometries(Basins[B]['shp'].geometry,
-                                crs=ccrs.PlateCarree(),
-                                alpha=0.5,
-                                facecolor=cmap(norm(Basins[B]['glacerization_degree'])),edgecolor='black')
-        else: ax=ax1
-        
-        xy = (Basins[B]['center_lon'],Basins[B]['center_lat'])
-        # stack_shapefiles[i].plot(ax=ax1,edgecolor='black')
-        # ax1.plot(stack_shapefiles[i].geometry)
-        ax.add_geometries(Basins[B]['shp'].geometry.buffer(0.01),
-                            crs=ccrs.PlateCarree(),
-                            facecolor=cmap(norm(Basins[B]['glacerization_degree'])))
-        ax.add_geometries(Basins[B]['shp'].geometry.buffer(0.01),
-                            crs=ccrs.PlateCarree(),
-                            alpha=0.5,facecolor=cmap(norm(Basins[B]['glacerization_degree'])),
-                            edgecolor='black')
-        ax.annotate(B.title(),xy,
-                     xy+np.array(arrowxy[B])*1.3,
-                arrowprops=dict(facecolor='black',
-                                width=0.001,headlength=0.02,
-                                headwidth=0.02,alpha=0.7))
-    
-    ax5 = f1.add_axes([-0.25,0.05,0.3,0.4])
-    ax5.set_visible(False)
-    im = ax5.imshow(np.array([[VMIN,20]]),cmap=cmap)
-    bar =plt.colorbar(im,fraction=0.035,label='Glacierization degree [%]')
-    
-    
-    save_at = join(run_dir,r'Figures\Basin_maps','worldmap25_small_whitebackground_buffer.svg')
-    plt.savefig(save_at,bbox_inches='tight',format = 'svg')
-    plt.show()

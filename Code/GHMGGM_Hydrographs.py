@@ -20,14 +20,6 @@ This script:
             NSE
             Calendar benchmark efficiency (Schaefli&Gupta2007)
 
-
-
-To do:
-    Explain N in hydrographs name
-
-Done:
-
-
 Files needed:
     glaciers_nc files (including discharge observations)
     Model hydrographs
@@ -116,21 +108,7 @@ basin_info = pd.read_csv(join(
     RUN_DIR,'Files','GHMGGM_basin_info.csv'),index_col = 0)
 
 ### 25 basins used in the paper
-# BASIN_NAMES = ['RHONE']
 BASIN_NAMES = basin_info[basin_info['suitable']=='y'].index
-# BASIN_NAMES = ['AMAZON','IRRAWADDY','MACKENZIE',
-#                 'OB','YUKON','ALSEK', 'CLUTHA', 'COLUMBIA', 'COPPER', 'DANUBE', 'DRAMSELV',
-#         'FRASER', 'GLOMA',
-#         'KUSKOKWIM', 'NASS', 'NEGRO', 'OELFUSA',
-#         'RHINE', 'RHONE',  'SKAGIT', 'SKEENA', 'STIKINE','SUSITNA',
-#         'TAKU', 'THJORSA'] #minus Indus, Kalixaelven, Nelson, Joekulsa, Santa Cruz, Lule
-# BASIN_NAMES = ['ALSEK','COLUMBIA','RHONE','OELFUSA','MACKENZIE','RHINE']
-### Basins with routing problems
-# BASIN_NAMES = ['JOEKULSA','NELSON','SANTA_CRUZ','LULE','KALIXAELVEN]
-###Large Basins
-# BASIN_NAMES  = ['AMAZON','IRRAWADDY','MACKENZIE','OB','YUKON']
-###Basins with a second station
-# BASIN_NAMES = ['CLUTHA','COLUMBIA','RHINE','SUSITNA','DANUBE']
 
 MODEL_SETUPS        = ['2','0','1']
 MODEL_NAMES         ={'0':'Modelled (Benchmark)',
@@ -317,15 +295,15 @@ for Basin_name in BASIN_NAMES:
         glac_frac_obs = routed_R.hg / Qobs.to_dataframe().hg
         max_frac  = glac_frac.max() #.max() or .quantile()
         OF['GFmax'] = max_frac
-        OF['GF99']  = glac_frac.quantile(0.99)
+        OF['GC99']  = glac_frac.quantile(0.99)
         # OF['fQ95'] = glac_frac_obs.quantile(0.95)
         # OF['fQ90'] = glac_frac_obs.quantile(0.90)
         OF['GFmean'] = glac_frac.mean()
 
         # basin_info.fQ99[Basin_name] = OF['fQ99']
-        # basin_info.GF99[Basin_name] = OF['GF99']
+        # basin_info.GC99[Basin_name] = OF['GC99']
         # basin_info.loc[Basin_name,'fQ90'] = OF['fQ90']
-        basin_info.loc[Basin_name,'GF99'] = OF['GF99']
+        basin_info.loc[Basin_name,'GC99'] = OF['GC99']
 
     OF_list.append(pd.DataFrame(OF,index=[Basin_name]))
     HG_list.append(hg)
@@ -459,7 +437,7 @@ for Basin_name in BASIN_NAMES:
     #     glac_frac = routed_R.hg / hg['s2'].hg
     #     max_frac  = glac_frac.max() #.max() or .quantile()
     #     OF['GFmax'] = max_frac
-    #     OF['GF99']  = glac_frac.quantile(0.99)
+    #     OF['GC99']  = glac_frac.quantile(0.99)
     #     OF['GFmean'] = glac_frac.mean()
     #+ this part of code for the plotting
         # #     if i==0:
@@ -479,7 +457,7 @@ basin_info.to_csv(join(RUN_DIR,'Files','GHMGGM_basin_info.csv'))
 OF_df = pd.concat(OF_list)
 OF_df = OF_df.reindex(sorted(OF_df.columns,reverse=False),axis=1)
 
-OF_sorted= OF_df.sort_values(by=['GF99'],axis=0,ascending=False)
+OF_sorted= OF_df.sort_values(by=['GC99'],axis=0,ascending=False)
 OF_sorted.to_csv(join(RUN_DIR,'Output','OF_sorted'+str(len(OF_list))+'.csv'))
 
 
@@ -495,7 +473,7 @@ normdif_means = normdif_stack.groupby([normdif_stack.index.month, normdif_stack.
 normdif_means.index=normdif_stack['2004'].index #Random year, it's only about the calendar days
 
 
-normdif_means.columns = OF_df.GF99.values
+normdif_means.columns = OF_df.GC99.values
 normdif_means = normdif_means.reindex(sorted(normdif_means.columns),axis=1)
 normdif_means.to_csv(join(RUN_DIR,'Output','ND_'+str(len(OF_list))+'.csv'))
 
@@ -527,8 +505,8 @@ HG_dic = {BASIN_NAMES[i]:HG_list[i] for i in range(len(BASIN_NAMES))}
 Qobs_dic = {BASIN_NAMES[i]:Qobs_list[i] for i in range(len(BASIN_NAMES))}
 glacier_sum_dic = {BASIN_NAMES[i]:glacier_sum_list[i] for i in range(len(BASIN_NAMES))}
 
-Basins = ['OELFUSA','ALSEK','RHONE','COLUMBIA','RHINE','MACKENZIE']
-# Basins = ['JOEKULSA','SANTA_CRUZ','NELSON','LULE']
+# Basins = ['OELFUSA','ALSEK','RHONE','COLUMBIA','RHINE','MACKENZIE']
+Basins = ['JOEKULSA','SANTA_CRUZ','NELSON','LULE']
 NB = len(Basins)
 
 # year = 2005
@@ -577,7 +555,7 @@ for year in range(2010,2011):
 
         ax.set_ylabel(r'$Q_{basin}\/[m^3/s]$')
         ax.grid(alpha=0.6)
-        gd = OF_sorted.loc[Basins[i],'GF99']
+        gd = OF_sorted.loc[Basins[i],'GC99']
         # gd = basin_info.loc[Basins[i],'glac_degree']
         if i==0:
             # ax.set_title(Basins[i].title()+' (Glaciation degree ='+str(round(gd,2))+'%)')
@@ -608,6 +586,13 @@ for year in range(2010,2011):
             twin.legend(
                 lines + lines2, labels + labels2,
                 loc=(0.19, 0.102), prop={"size": 8}) #loc=(0.8,1.1)
+
+        if Basins[i]=='LULE':
+            lines, labels = ax.get_legend_handles_labels()
+            lines2, labels2 = twin.get_legend_handles_labels()
+            twin.legend(
+                lines + lines2, labels + labels2,
+                loc=(0.35, 4.13), prop={"size": 7.5}) #loc=(0.8,1.1)
 
         if i==NB-1:
             binitials = ''.join([B[0] for B in Basins ])
